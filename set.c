@@ -14,33 +14,6 @@
  * LAST EDITED:	    01/04/2018
  ***/
 
-/* ======= EXAMPLE OUTPUT =======
- *
- * ==== Inserting ====
- * int 9 @ 0x7fdea2500030
- * int 5 @ 0x7fdea2500050
- * int 4 @ 0x7fdea2500070
- * int 7 @ 0x7fdea2500090
- * int 3 @ 0x7fdea25000b0
- * int 0 @ 0x7fdea25000d0
- * int 7 @ 0x7fdea25000f0: IS A MEMBER
- * int 1 @ 0x7fdea2500100
- * int 8 @ 0x7fdea2500120
- * int 2 @ 0x7fdea2500140
- * int 6 @ 0x7fdea2500160
- * ==== Removing =====
- * int 9 @ 0x7fdea2500030
- * int 5 @ 0x7fdea2500050
- * int 4 @ 0x7fdea2500070
- * int 7 @ 0x7fdea2500090
- * int 3 @ 0x7fdea25000b0
- * int 0 @ 0x7fdea25000d0
- * int 1 @ 0x7fdea2500100
- * int 8 @ 0x7fdea2500120
- * int 2 @ 0x7fdea2500140
- * int 6 @ 0x7fdea2500160
- */
-
 /******************************************************************************
  * INCLUDES
  ***/
