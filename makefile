@@ -8,7 +8,7 @@
 
 P = set
 OBJECTS = set.c
-CFLAGS = -Wall -O3
+CFLAGS = -std=c99 -Wall -O3
 LDLIBS=
 CC=gcc
 
@@ -17,7 +17,7 @@ $(P):
 
 .PHONY: debug clean
 
-CFLAGS_DEBUG = -g -O0 -Wall -D CONFIG_DEBUG_SET
+CFLAGS_DEBUG = -g -std=c99 -O0 -Wall -D CONFIG_DEBUG_SET
 
 debug:
 	$(CC) $(CFLAGS_DEBUG) -o $(P) $(OBJECTS) $(LDLIBS)

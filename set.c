@@ -11,7 +11,7 @@
  *
  * CREATED:	    05/09/17
  *
- * LAST EDITED:	    06/08/17
+ * LAST EDITED:	    01/04/2018
  ***/
 
 /* ======= EXAMPLE OUTPUT =======
@@ -317,51 +317,32 @@ void set_destroy(Set * set)
  *		    setu.
  *
  * ARGUMENTS:	    setu: (Set *) -- will contain a pointer to the union of all
- *			  sets at the end of the call.
- *		    numargs: int -- contains the number of arguments passed.
+ *			    sets at the end of the call.
  *		    ...: (Set *) -- all further parameters will be cast to
- *			 pointer to Set and unioned.
+ *			    pointer to Set and unioned.
  *
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
- * NOTES:	    O(mn), where m is the number of sets unioned.
+ * NOTES:	    O(mn), where m is the number of sets unioned. Should always
+ *		    be called by wrapper macro.
  ***/
-int set_union(Set * setu, int numargs, ...)
+int set_union_func(Set * setu,  Set * sets[])
 {
-  va_list pSet;
-  Set * set;
-  int first_iteration = 1;
-
-  if (setu == NULL || numargs < 1)
+  if (setu == NULL || sets[0] == NULL)
     return -1;
 
-  va_start(pSet, numargs);
-  set = va_arg(pSet, Set *);
+  set_init(setu, sets[0]->match, sets[0]->destroy);
 
-  set_init(setu, set->match, set->destroy); 
+  int i = 0;
+  for (Set * set = sets[i]; set != NULL; set = sets[i++]) {
+    for (Member * current = set->head; current != NULL; set_next(current)) {
 
-  for (int i = 1; i <= numargs; i++) {
-    if (!first_iteration)
-      set = va_arg(pSet, Set *);
-    else
-      first_iteration = 0;
-
-    if (set == NULL)
-      goto error_exception;
-
-    Member * current;
-    void * data;
-    for (current = set->head; current != NULL; set_next(current)) {
-
-      data = current->data;
-
-      if (set_insert(setu, (void *)data) < 0) {
+      if (set_insert(setu, (void *)current->data) < 0)
 	goto error_exception;
-      }
+
     }
   }
 
-  va_end(pSet);
   return 0;
 
  error_exception: {
@@ -386,43 +367,19 @@ int set_union(Set * setu, int numargs, ...)
  *
  * NOTES:	    O(mn), where m is the number of sets passed.
  ***/
-int set_intersection(Set * seti, int numargs, ...)
+int set_intersection_func(Set * seti, Set * sets[])
 {
-  va_list pSet;
-  Set * set;
-  Set ** sets = calloc(numargs, sizeof(Set *));
-  int first_iteration = 1;
-
-  if (seti == NULL || numargs < 1)
+  if (seti == NULL)
     return -1;
 
-  va_start(pSet, numargs);
-  set = va_arg(pSet, Set *);
+  set_init(seti, sets[0]->match, sets[0]->destroy);
 
-  set_init(seti, set->match, set->destroy);
+  for (Member * current = (*sets)->head; current != NULL; set_next(current)) {
 
-  for (int i = 0; i < numargs; i++) {
-    if (!first_iteration)
-      set = va_arg(pSet, Set *);
-    else
-      first_iteration = 0;
+    int nonmember = 0;
+    for (int j = 1; j < (sizeof(*sets) / sizeof(Set *)); j++) {
 
-    if (set == NULL)
-      goto error_exception;
-
-    sets[i] = set;
-  }
-
-  Member * current;
-  void * data;
-  int nonmember;
-  for (current = (*sets)->head; current != NULL; set_next(current)) {
-
-    nonmember = 0;
-    data = current->data;
-    for (int i = 1; i < numargs; i++) {
-
-      if (!set_ismember(sets[i], data)) {
+      if (!set_ismember((const Set *)&sets[j], current->data)) {
 	nonmember = 1;
 	break;
       }
@@ -432,15 +389,10 @@ int set_intersection(Set * seti, int numargs, ...)
     if (nonmember)
       continue;
 
-    set_insert(seti, data);
+    set_insert(seti, current->data);
   }
 
   return 0;
-
- error_exception: {
-    set_destroy(seti);
-    return -1;
-  }
 }
 
 /*******************************************************************************
@@ -699,7 +651,7 @@ static int test_union(Set * A, Set * B, Set * U)
   for (int i = 0; i < 3; i++)
     set_insert(B, (void *)&(arrB[i]));
 
-  if (set_union(U, 2, A, B) != 0)
+  if (set_union(U, A, B) != 0)
     return 0;
 
   for (int i = 0; i < set_size(U); i++) {
@@ -732,8 +684,10 @@ static int test_intersection(Set * A, Set * B, Set * I)
   for (int i = 0; i < 3; i++)
     set_insert(B, (void *)&(arrB[i]));
 
-  if (set_intersection(I, 2, A, B) != 0)
+  if (set_intersection(I, A, B) != 0)
     return 0;
+
+  set_traverse(I, printset);
 
   for (int i = 0; i < set_size(I); i++) {
     pTest = &(arrI[i]);

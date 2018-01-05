@@ -47,9 +47,15 @@ typedef struct _Set_ {
 /* Mostly for use in for and while loops: */
 #define set_next(member) (member = (member)->next)
 
-/* Earlier versions of this header used a sentinel value to    */
-/* terminate the list of arguments for the variadic functions. */
-#define VARARG_SENTINEL (NULL)
+/* Wrapper macros for set_union and set_intersection
+ * These macros safely terminate the list, and should ALWAYS be called
+ * instead of set_union_func and set_intersection_func, respectively.
+ */
+#define set_union(Setu, ...)				\
+  (set_union_func(Setu, (Set * []){__VA_ARGS__, NULL}))
+
+#define set_intersection(Seti, ...) \
+  (set_intersection_func(Seti, (Set * []){__VA_ARGS__, NULL}))
 
 /*******************************************************************************
  * API FUNCTION PROTOTYPES
@@ -67,8 +73,11 @@ extern void set_destroy(Set *);
 /************* SET OPERATIONS ***************/
 /********************************************/
 
-extern int set_union(Set *, int, ...);
-extern int set_intersection(Set *, int, ...);
+/* These functions: */
+extern int set_union_func(Set *, Set * []);
+extern int set_intersection_func(Set *, Set * []);
+/* Should NEVER be called directly. Use the wrapper macros defined above. */
+
 extern int set_difference(Set *, const Set *, const Set *);
 extern int set_issubset(const Set *, const Set *);
 extern int set_isequal(const Set *, const Set *);
