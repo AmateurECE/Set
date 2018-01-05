@@ -1,4 +1,4 @@
-/*******************************************************************************
+/******************************************************************************
  * NAME:	    set.c
  *
  * AUTHOR:	    Ethan D. Twardy
@@ -41,7 +41,7 @@
  * int 6 @ 0x7fdea2500160
  */
 
-/*******************************************************************************
+/******************************************************************************
  * INCLUDES
  ***/
 
@@ -57,16 +57,25 @@
 
 #include "set.h"
 
-/*******************************************************************************
+/******************************************************************************
+ * MACRO DEFINITIONS
+ ***/
+
+#ifdef CONFIG_DEBUG_SET
+#define error_exit(str) {			\
+    fprintf(stderr, "%s\n", (str));		\
+    exit(1);					\
+  }
+#endif
+
+/******************************************************************************
  * LOCAL PROTOTYPES
  ***/
 
 #ifdef CONFIG_DEBUG_SET
-static inline void error_exit(char *);
 int match(const void *, const void *);
 void printset(void *);
 
-/* ****** TESTS ****** */
 static int test_remove(Set *);
 static int test_insert(Set *);
 static int test_isequal(Set *, Set *);
@@ -75,20 +84,20 @@ static int test_intersection(Set *, Set *, Set *);
 static int test_subtraction(Set *, Set *, Set *);
 #endif /* CONFIG_DEBUG_SET */
 
-/*******************************************************************************
+/******************************************************************************
  * API FUNCTIONS
  ***/
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_init
  *
  * DESCRIPTION:	    Initializes the set pointer with the parameters given.
  *
  * ARGUMENTS:	    set: (Set *) -- the set to be initialized.
- *		    match: (int (*)(const void *, const void *)) -- a pointer to
- *			   a user-defined function that compares two keys and
- *			   determines if they are equal. Should return 1 for
- *			   equality and 0 otherwise.
+ *		    match: (int (*)(const void *, const void *)) -- a pointer
+ *			   to a user-defined function that compares two keys
+ *			   and determines if they are equal. Should return 1
+ *			   for equality and 0 otherwise.
  *		    destroy: (void (*)(void *)) -- a pointer to a user-defined
  *			     function that frees data held in the list.
  *
@@ -107,11 +116,11 @@ void set_init(Set * set,
   set->tail = NULL;
 }
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_ismember
  *
- * DESCRIPTION:	    Determines if the key provided in 'data' is already a member
- *		    of the set.
+ * DESCRIPTION:	    Determines if the key provided in 'data' is already a
+ *		    member of the set.
  *
  * ARGUMENTS:	    set: (const Set *) -- the set to be operated on.
  *		    data: (const void *) -- data to check.
@@ -139,11 +148,11 @@ int set_ismember(const Set * set, const void * data)
     return 0;
 }
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_insert
  *
- * DESCRIPTION:	    Inserts the 'data' into the set if it does not already exist
- *		    in the set.
+ * DESCRIPTION:	    Inserts the 'data' into the set if it does not already
+ *		    exist in the set.
  *
  * ARGUMENTS:	    set: (Set *) -- the set to be operated on.
  *		    data: (const void *) -- data to insert.
@@ -182,7 +191,7 @@ int set_insert(Set * set, void * data)
   return 0;
 }
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_rem
  *
  * DESCRIPTION:	    Removes the member specified in 'data' from the set. If
@@ -245,7 +254,7 @@ int set_remove(Set * set, void ** data)
   return 0;
 }
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_traverse
  *
  * DESCRIPTION:	    Traverses the set and calls func() on each member in the 
@@ -273,7 +282,7 @@ int set_traverse(Set * set, void (*func)(void *))
   return 0;
 }
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_dest
  *
  * DESCRIPTION:	    Removes all data from the set and sets all bytes of memory
@@ -307,10 +316,7 @@ void set_destroy(Set * set)
   memset(set, 0, sizeof(Set));
 }
 
-/************* SET OPERATIONS ***************/
-/********************************************/
-
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_union
  *
  * DESCRIPTION:	    Performs the union set operation and places the result in
@@ -351,7 +357,7 @@ int set_union_func(Set * setu,  Set * sets[])
   }
 }
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_intersection
  *
  * DESCRIPTION:	    Performs the intersection set operation and places the
@@ -395,7 +401,7 @@ int set_intersection_func(Set * seti, Set * sets[])
   return 0;
 }
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_difference
  *
  * DESCRIPTION:	    Performs the set difference operation and places the
@@ -434,7 +440,7 @@ int set_difference(Set * setd, const Set * set1, const Set * set2)
   }
 }
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_issubset
  *
  * DESCRIPTION:	    Determines if set1 is a subset of set2.
@@ -465,7 +471,7 @@ int set_issubset(const Set * set1, const Set * set2)
   return 1;
 }
 
-/*******************************************************************************
+/******************************************************************************
  * FUNCTION:	    set_isequal
  *
  * DESCRIPTION:	    Determines if set1 is equal to set2.
@@ -493,7 +499,7 @@ int set_isequal(const Set * set1, const Set * set2)
   return 1;
 }
 
-/*******************************************************************************
+/******************************************************************************
  * MAIN
  ***/
 
@@ -529,11 +535,12 @@ int main(int argc, char * argv[])
   /* Removing */
   printf("==== Removing =====\n");
   while (set_size(set) > 0) {
-  pNum = NULL;
-    if (set_remove(set, (void **)&pNum) < 0)
+    pNum = NULL;
+    if (set_remove(set, (void **)&pNum) < 0) {
       error_exit("Error in set_remove");
-    else
+    } else {
       printf("int %d @ %p\n", *pNum, pNum);
+    }
     free(pNum);
   }
 
@@ -554,20 +561,23 @@ int main(int argc, char * argv[])
 
   return 0;
 }
-#endif /* CONFIG_DEBUG_SET */
 
-/*******************************************************************************
+/******************************************************************************
  * LOCAL FUNCTIONS
  ***/
 
-#ifdef CONFIG_DEBUG_SET
-static inline void error_exit(char * msg)
-{
-  fprintf(stderr, "%s\n", msg);
-  exit(1);
-}
-
-/* For set_init, and set operations. */
+/******************************************************************************
+ * FUNCTION:	    match
+ *
+ * DESCRIPTION:	    Used by set_init, set_insert, and the set operations.
+ *
+ * ARGUMENTS:	    one: (const void *) -- the first datum.
+ *		    two: (const void *) -- the second datum.
+ *
+ * RETURN:	    (int) -- 1 if one and two are equivalent, 0 otherwise.
+ *
+ * NOTES:	    none.
+ ***/
 int match(const void * one, const void * two)
 {
   int a = *((int *)one);
@@ -579,15 +589,34 @@ int match(const void * one, const void * two)
     return 0;
 }
 
-/* For set_traverse; Used for debugging */
+/******************************************************************************
+ * FUNCTION:	    printset
+ *
+ * DESCRIPTION:	    Used by set_traverse, for debugging.
+ *
+ * ARGUMENTS:	    data: (void *) -- the data in each member of the set.
+ *
+ * RETURN:	    void.
+ *
+ * NOTES:	    none.
+ ***/
 void printset(void * data)
 {
   int * pInt = (int *)data;
   printf("%d ", *pInt);
 }
 
-/* ****** TESTS ****** */
-
+/******************************************************************************
+ * FUNCTION:	    test_remove
+ *
+ * DESCRIPTION:	    Tests the set_remove function.
+ *
+ * ARGUMENTS:	    set: (Set *) -- a set to use for the tests.
+ *
+ * RETURN:	    (int) -- 1 if the test passes, 0 if the tests fail.
+ *
+ * NOTES:	    none.
+ ***/
 static int test_remove(Set * set)
 {
   set_init(set, match, free);
@@ -599,6 +628,17 @@ static int test_remove(Set * set)
   return ret == -1;
 }
 
+/******************************************************************************
+ * FUNCTION:	    test_insert
+ *
+ * DESCRIPTION:	    Tests the set_insert function.
+ *
+ * ARGUMENTS:	    set: (Set *) -- a set to use for the tests.
+ *
+ * RETURN:	    (int) -- 1 if the tests pass, 0 if they fail.
+ *
+ * NOTES:	    none.
+ ***/
 static int test_insert(Set * set)
 {
   set_init(set, match, free);
@@ -615,6 +655,18 @@ static int test_insert(Set * set)
   return ret == 1;
 }
 
+/******************************************************************************
+ * FUNCTION:	    test_isequal
+ *
+ * DESCRIPTION:	    Tests the set_isequal function.
+ *
+ * ARGUMENTS:	    A: (Set *) -- The first set to use in the tests.
+ *		    B: (Set *) -- The second set to use in the tests.
+ *
+ * RETURN:	    (int) -- 1 if the test passes, 0 otherwise.
+ *
+ * NOTES:	    none.
+ ***/
 static int test_isequal(Set * A, Set * B)
 {
   /* {1} = {1} */
@@ -634,6 +686,19 @@ static int test_isequal(Set * A, Set * B)
   return ret;
 }
 
+/******************************************************************************
+ * FUNCTION:	    test_union
+ *
+ * DESCRIPTION:	    Tests the set_union function.
+ *
+ * ARGUMENTS:	    A: (Set *) -- The first set to use in the tests.
+ *		    B: (Set *) -- The second set to use in the tests.
+ *		    C: (Set *) -- The third set to use in the tests.
+ *
+ * RETURN:	    (int) -- 1 if the test passes, 0 otherwise.
+ *
+ * NOTES:	    none.
+ ***/
 static int test_union(Set * A, Set * B, Set * U)
 {
   /* {0, 1, 2} U {2, 4, 6} = {0, 1, 2, 4, 6} */
@@ -667,6 +732,19 @@ static int test_union(Set * A, Set * B, Set * U)
   return 1;
 }
 
+/******************************************************************************
+ * FUNCTION:	    test_intersection
+ *
+ * DESCRIPTION:	    Tests the set_intersection function.
+ *
+ * ARGUMENTS:	    A: (Set *) -- the first set to use in the tests.
+ *		    B: (Set *) -- the second set to use in the tests.
+ *		    C: (Set *) -- the third set to use in the tests.
+ *
+ * RETURN:	    (int) -- 1 if the test passes, 0 otherwise.
+ *
+ * NOTES:	    none.
+ ***/
 static int test_intersection(Set * A, Set * B, Set * I)
 {
   /* {0, 1, 2} ^ {2, 4, 6} = {2} */
@@ -702,6 +780,19 @@ static int test_intersection(Set * A, Set * B, Set * I)
   return 1;
 }
 
+/******************************************************************************
+ * FUNCTION:	    test_subtraction
+ *
+ * DESCRIPTION:	    Tests the set_subtraction function.
+ *
+ * ARGUMENTS:	    A: (Set *) -- The first set to use in the tests.
+ *		    B: (Set *) -- The second set to use in the tests.
+ *		    C: (Set *) -- The third set to use in the tests.
+ *
+ * RETURN:	    (int) -- 1 if the tests pass, 0 otherwise.
+ *
+ * NOTES:	    none.
+ ***/
 static int test_subtraction(Set * A, Set * B, Set * S)
 {
   /* {0, 1, 2} - {2, 4, 6} = {0, 1} */
@@ -736,4 +827,4 @@ static int test_subtraction(Set * A, Set * B, Set * S)
 }
 #endif /* CONFIG_DEBUG_SET */
 
-/******************************************************************************/
+/*****************************************************************************/
