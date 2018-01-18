@@ -1,0 +1,7 @@
+./set.c: Fix all usage of set_ismember to reflect return value | id:094020d3e3c9e6b4b81a5abfc70c509962caa047
+./set.c: Fix params for all set operation functions. | id:13424257be3d22939a2067e1202587a889f4f541
+./set.c: Improve format of testing (Similar to bitree) | id:322b54cf973ee58dbbf500dd816234dd6e35ccf7
+./set.c: Move testing to another file. | id:64a4e5bf1b077ddf61ae35d35ff66530c6dd209d
+./set.c: set_intersection_func - Return intersecting set. | id:8d16b6fea6f7b0436e5eb8f8f1d1605e5107282e
+./set.c: set_intersection_func - Sanitize inputs accordingly. | id:b36f7e10f4566eada24ed6551b9c4bafb5943b0c
+./set.h: Rename the Set structs | id:eb843ecb701a5f01aa506b9e24ed4e4c0dd83af8

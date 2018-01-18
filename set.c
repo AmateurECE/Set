@@ -11,7 +11,7 @@
  *
  * CREATED:	    05/09/17
  *
- * LAST EDITED:	    01/04/2018
+ * LAST EDITED:	    01/18/2018
  ***/
 
 /******************************************************************************
@@ -35,8 +35,14 @@
  ***/
 
 #ifdef CONFIG_DEBUG_SET
+#define error_exitf(str, ...) {			\
+    fprintf(stderr, str, __VA_ARGS__);		\
+    printf("\n");				\
+    exit(1);					\
+  }
 #define error_exit(str) {			\
-    fprintf(stderr, "%s\n", (str));		\
+    fprintf(stderr, str);			\
+    printf("\n");				\
     exit(1);					\
   }
 #endif
@@ -54,7 +60,7 @@ static int test_insert(Set *);
 static int test_isequal(Set *, Set *);
 static int test_union(Set *, Set *, Set *);
 static int test_intersection(Set *, Set *, Set *);
-static int test_subtraction(Set *, Set *, Set *);
+static int test_difference(Set *, Set *, Set *);
 #endif /* CONFIG_DEBUG_SET */
 
 /******************************************************************************
@@ -62,31 +68,37 @@ static int test_subtraction(Set *, Set *, Set *);
  ***/
 
 /******************************************************************************
- * FUNCTION:	    set_init
+ * FUNCTION:	    set_create
  *
  * DESCRIPTION:	    Initializes the set pointer with the parameters given.
  *
- * ARGUMENTS:	    set: (Set *) -- the set to be initialized.
- *		    match: (int (*)(const void *, const void *)) -- a pointer
+ * ARGUMENTS:	    match: (int (*)(const void *, const void *)) -- a pointer
  *			   to a user-defined function that compares two keys
  *			   and determines if they are equal. Should return 1
  *			   for equality and 0 otherwise.
  *		    destroy: (void (*)(void *)) -- a pointer to a user-defined
  *			     function that frees data held in the list.
  *
- * RETURN:	    void.
+ * RETURN:	    (Set *) -- pointer to the new set, or NULL.
  *
  * NOTES:	    O(1)
  ***/
-void set_init(Set * set,
-	      int (*match)(const void *, const void *),
-	      void (*destroy)(void *))
+Set * set_create(int (*match)(const void *, const void *),
+		 void (*destroy)(void *))
 {
-  set->size = 0;
-  set->match = match;
-  set->destroy = destroy;
-  set->head = NULL;
-  set->tail = NULL;
+  Set * set = NULL;
+  if ((set = malloc(sizeof(Set))) == NULL)
+    return NULL;
+
+  *set = (Set){
+    .size = 0,
+    .match = match,
+    .destroy = destroy,
+    .head = NULL,
+    .tail = NULL
+  };
+
+  return set;
 }
 
 /******************************************************************************
@@ -98,13 +110,15 @@ void set_init(Set * set,
  * ARGUMENTS:	    set: (const Set *) -- the set to be operated on.
  *		    data: (const void *) -- data to check.
  *
- * RETURN:	    int -- 1 if the member is in the set, 0 otherwise.
+ * RETURN:	    int -- 1 if the member is in the set, 0 if it is not, -1 if
+ *		    an error has occurred.
  *
  * NOTES:	    O(n)
+ *		    TODO: Fix all usage of set_ismember to reflect return value
  ***/
 int set_ismember(const Set * set, const void * data)
 {
-  if (data == NULL)
+  if (set == NULL || data == NULL)
     return -1;
 
   if (set_isempty(set))
@@ -165,7 +179,7 @@ int set_insert(Set * set, void * data)
 }
 
 /******************************************************************************
- * FUNCTION:	    set_rem
+ * FUNCTION:	    set_remove
  *
  * DESCRIPTION:	    Removes the member specified in 'data' from the set. If
  *		    *data == NULL, removes the first member from the set.
@@ -256,41 +270,42 @@ int set_traverse(Set * set, void (*func)(void *))
 }
 
 /******************************************************************************
- * FUNCTION:	    set_dest
+ * FUNCTION:	    set_destroy
  *
  * DESCRIPTION:	    Removes all data from the set and sets all bytes of memory
  *		    to 0. If destroy is set to NULL, does not attempt to free
  *		    the memory associated with the data in the set.
  *
- * ARGUMENTS:	    set: (Set *) -- the set to be operated on.
+ * ARGUMENTS:	    set: (Set **) -- the set to be operated on.
  *
  * RETURN:	    void.
  *
  * NOTES:	    O(n)
  ***/
-void set_destroy(Set * set)
+void set_destroy(Set ** set)
 {
   void * data;
   Member * old;
 
-  while (set_size(set) > 0) {
-    data = set->head->data;
-    old = set->head;
-    set->head = set->head->next;
+  while (set_size(*set) > 0) {
+    data = (*set)->head->data;
+    old = (*set)->head;
+    (*set)->head = (*set)->head->next;
     
-    set->size--;
+    (*set)->size--;
     free(old);
     
-    if (set->destroy != NULL) {
-      set->destroy(data);
+    if ((*set)->destroy != NULL) {
+      (*set)->destroy(data);
     }
   }
 
-  memset(set, 0, sizeof(Set));
+  free(*set);
+  *set = NULL;
 }
 
 /******************************************************************************
- * FUNCTION:	    set_union
+ * FUNCTION:	    set_union_func
  *
  * DESCRIPTION:	    Performs the union set operation and places the result in
  *		    setu.
@@ -305,20 +320,22 @@ void set_destroy(Set * set)
  * NOTES:	    O(mn), where m is the number of sets unioned. Should always
  *		    be called by wrapper macro.
  ***/
-int set_union_func(Set * setu,  Set * sets[])
+int set_union_func(Set ** setu,  Set * sets[])
 {
-  if (setu == NULL || sets[0] == NULL)
+  if (sets[0] == NULL || setu == NULL)
     return -1;
-
-  set_init(setu, sets[0]->match, sets[0]->destroy);
+  if (*setu == NULL) {
+    if ((*setu = set_create(sets[0]->match, sets[0]->destroy)) == NULL)
+      return -1;
+  } else if (set_size(*setu) > 0) {
+    return -1;
+  }
 
   int i = 0;
   for (Set * set = sets[i]; set != NULL; set = sets[i++]) {
     for (Member * current = set->head; current != NULL; set_next(current)) {
-
-      if (set_insert(setu, (void *)current->data) < 0)
+      if (set_insert(*setu, (void *)current->data) < 0)
 	goto error_exception;
-
     }
   }
 
@@ -331,13 +348,14 @@ int set_union_func(Set * setu,  Set * sets[])
 }
 
 /******************************************************************************
- * FUNCTION:	    set_intersection
+ * FUNCTION:	    set_intersection_func
  *
  * DESCRIPTION:	    Performs the intersection set operation and places the
  *		    result in seti.
  *
  * ARGUMENTS:	    seti: (Set *) -- will contain a pointer to the intersection
- *			  of all sets at the end of the call.
+ *			of all sets at the end of the call. May be NULL, or
+ *			the empty set. All other values return error.
  *		    numargs: int -- contains the number of arguments passed.
  *		    ...: (Set *) -- all further parameters will be cast to
  *			 pointer to Set and intersected.
@@ -345,30 +363,29 @@ int set_union_func(Set * setu,  Set * sets[])
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
  * NOTES:	    O(mn), where m is the number of sets passed.
+ *		    TODO: set_intersection_func - Return intersecting set.
+ *		    TODO: set_intersection_func - Sanitize inputs accordingly.
+ *		    TODO: Fix params for all set operation functions.
  ***/
-int set_intersection_func(Set * seti, Set * sets[])
+int set_intersection_func(Set ** seti, Set * sets[])
 {
-  if (seti == NULL)
+  if (sets[0] == NULL || seti == NULL)
     return -1;
-
-  set_init(seti, sets[0]->match, sets[0]->destroy);
+  if (*seti == NULL) {
+    if ((*seti = set_create(sets[0]->match, sets[0]->destroy)) == NULL)
+      return -1;
+  } else if (set_size(*seti) > 0) {
+    return -1;
+  }
 
   for (Member * current = (*sets)->head; current != NULL; set_next(current)) {
-
-    int nonmember = 0;
-    for (int j = 1; j < (sizeof(*sets) / sizeof(Set *)); j++) {
-
-      if (!set_ismember((const Set *)&sets[j], current->data)) {
-	nonmember = 1;
-	break;
-      }
-
-    }
+    int nonmember = 0, j = 1;
+    while (sets[j] != NULL && !nonmember)
+      nonmember = !set_ismember((const Set *)sets[j++], current->data);
 
     if (nonmember)
       continue;
-
-    set_insert(seti, current->data);
+    set_insert(*seti, current->data);
   }
 
   return 0;
@@ -389,18 +406,18 @@ int set_intersection_func(Set * seti, Set * sets[])
  *
  * NOTES:	    O(mn)
  ***/
-int set_difference(Set * setd, const Set * set1, const Set * set2)
+int set_difference(Set ** setd, const Set * set1, const Set * set2)
 {
   if (setd == NULL || set1 == NULL || set2 == NULL)
     return -1;
-
-  set_init(setd, set1->match, set1->destroy);
+  if ((*setd = set_create(set1->match, set1->destroy)) == NULL)
+    return -1;
 
   Member * current;
   for (current = set1->head; current != NULL; set_next(current)) {
     
     if (!set_ismember(set2, current->data))
-      if (set_insert(setd, current->data) != 0)
+      if (set_insert(*setd, current->data) != 0)
 	goto error_exception;
 
   }
@@ -476,17 +493,19 @@ int set_isequal(const Set * set1, const Set * set2)
  * MAIN
  ***/
 
+/* TODO: Move testing to another file.
+ * TODO: Improve format of testing (Similar to bitree)
+ */
+
 #ifdef CONFIG_DEBUG_SET
 int main(int argc, char * argv[])
 {
   /* STANDARD TEST. */
-  Set * set;
-  int * pNum;
+  Set * set = NULL;
+  int * pNum = NULL;
 
-  if ((set = malloc(sizeof(Set))) == NULL)
+  if ((set = set_create(match, free)) == NULL)
     error_exit("Could not allocate memory for set!");
-
-  set_init(set, match, free);
 
   srand((unsigned)time(NULL));
 
@@ -497,12 +516,15 @@ int main(int argc, char * argv[])
     *pNum = rand() % 10;
     printf("int %d @ %p", *pNum, pNum);
     int ret = set_insert(set, (void *)pNum);
-    if (ret < 0)
+    if (ret < 0) {
       printf(": FAILED\n");
-    else if (ret > 0)
+      free(pNum);
+    } else if (ret > 0) {
       printf(": IS A MEMBER\n");
-    else
+      free(pNum);
+    } else {
       printf("\n");
+    }
   }
 
   /* Removing */
@@ -517,20 +539,17 @@ int main(int argc, char * argv[])
     free(pNum);
   }
 
-  set_destroy(set);
+  set_destroy(&set);
 
   assert(test_remove(set) == 1);
   assert(test_insert(set) == 1);
 
-  Set * set2, * set3;
-  if ((set2 = malloc(sizeof(Set))) == NULL
-      || (set3 = malloc(sizeof(Set))) == NULL)
-    error_exit("There was a problem in MAIN: malloc");
+  Set *set2 = NULL, *set3 = NULL;
 
   assert(test_isequal(set, set2));
   assert(test_union(set, set2, set3));
   assert(test_intersection(set, set2, set3));
-  assert(test_subtraction(set, set2, set3));
+  assert(test_difference(set, set2, set3));
 
   return 0;
 }
@@ -542,7 +561,7 @@ int main(int argc, char * argv[])
 /******************************************************************************
  * FUNCTION:	    match
  *
- * DESCRIPTION:	    Used by set_init, set_insert, and the set operations.
+ * DESCRIPTION:	    Used by set_create, set_insert, and the set operations.
  *
  * ARGUMENTS:	    one: (const void *) -- the first datum.
  *		    two: (const void *) -- the second datum.
@@ -553,6 +572,11 @@ int main(int argc, char * argv[])
  ***/
 int match(const void * one, const void * two)
 {
+  if (one == NULL && two == NULL)
+    return 1;
+  if (one == NULL || two == NULL)
+    return 0;
+
   int a = *((int *)one);
   int b = *((int *)two);
 
@@ -576,7 +600,7 @@ int match(const void * one, const void * two)
 void printset(void * data)
 {
   int * pInt = (int *)data;
-  printf("%d ", *pInt);
+  printf("%d @ %p\n", *pInt, pInt);
 }
 
 /******************************************************************************
@@ -592,11 +616,12 @@ void printset(void * data)
  ***/
 static int test_remove(Set * set)
 {
-  set_init(set, match, free);
+  if ((set = set_create(match, free)) == NULL)
+    return 0;
   int * pTest = malloc(sizeof(int));
   *pTest = 1;
   int ret = set_remove(set, (void **)&pTest);
-  set_destroy(set);
+  set_destroy(&set);
   free(pTest);
   return ret == -1;
 }
@@ -614,18 +639,20 @@ static int test_remove(Set * set)
  ***/
 static int test_insert(Set * set)
 {
-  set_init(set, match, free);
-  int a = 1;
+  if ((set = set_create(match, free)) == NULL)
+    return 0;
   int * pTest = malloc(sizeof(int));
-  *pTest = a;
+  *pTest = 1;
   if (set_insert(set, (void *)pTest) < 0)
     error_exit("There was a problem in test_insert: set_insert");
+
+  pTest = malloc(sizeof(int));
+  *pTest = 2;
+  if (set_insert(set, (void *)pTest))
+    error_exit("There was a problem in test_insert: set_insert");
   
-  pTest = realloc(pTest, sizeof(int));
-  *pTest = a;
-  int ret = set_insert(set, (void *)pTest);
-  set_destroy(set);
-  return ret == 1;
+  set_destroy(&set);
+  return 1;
 }
 
 /******************************************************************************
@@ -643,8 +670,10 @@ static int test_insert(Set * set)
 static int test_isequal(Set * A, Set * B)
 {
   /* {1} = {1} */
-  set_init(A, match, free);
-  set_init(B, match, free);
+  if ((A = set_create(match, free)) == NULL)
+    return 0;
+  if ((B = set_create(match, free)) == NULL)
+    return 0;
 
   int * pA = malloc(sizeof(int));
   int * pB = malloc(sizeof(int));
@@ -654,8 +683,8 @@ static int test_isequal(Set * A, Set * B)
     error_exit("There was a problem in test_isequal: set_insert");
 
   int ret = set_isequal(A, B);
-  set_destroy(A);
-  set_destroy(B);
+  set_destroy(&A);
+  set_destroy(&B);
   return ret;
 }
 
@@ -680,8 +709,10 @@ static int test_union(Set * A, Set * B, Set * U)
   int arrU[] = {0, 1, 2, 4, 6};
   int * pTest;
 
-  set_init(A, match, NULL);
-  set_init(B, match, NULL);
+  if ((A = set_create(match, NULL)) == NULL)
+    return 0;
+  if ((B = set_create(match, NULL)) == NULL)
+    return 0;
   
   for (int i = 0; i < 3; i++)
     set_insert(A, (void *)&(arrA[i]));
@@ -689,7 +720,7 @@ static int test_union(Set * A, Set * B, Set * U)
   for (int i = 0; i < 3; i++)
     set_insert(B, (void *)&(arrB[i]));
 
-  if (set_union(U, A, B) != 0)
+  if (set_union(&U, A, B) != 0)
     return 0;
 
   for (int i = 0; i < set_size(U); i++) {
@@ -698,9 +729,9 @@ static int test_union(Set * A, Set * B, Set * U)
       return 0; 
   }
 
-  set_destroy(A);
-  set_destroy(B);
-  set_destroy(U);
+  set_destroy(&A);
+  set_destroy(&B);
+  set_destroy(&U);
 
   return 1;
 }
@@ -723,40 +754,39 @@ static int test_intersection(Set * A, Set * B, Set * I)
   /* {0, 1, 2} ^ {2, 4, 6} = {2} */
   int arrA[] = {0, 1, 2};
   int arrB[] = {2, 4, 6};
-  int arrI[] = {2};
-  int * pTest;
 
-  set_init(A, match, NULL);
-  set_init(B, match, NULL);
-  
+  if ((A = set_create(match, NULL)) == NULL)
+    return 0;
+  if ((B = set_create(match, NULL)) == NULL)
+    return 0;
+  /* Don't need to initialize I because set_intersection does that.
+   */
+
   for (int i = 0; i < 3; i++)
     set_insert(A, (void *)&(arrA[i]));
 
   for (int i = 0; i < 3; i++)
     set_insert(B, (void *)&(arrB[i]));
 
-  if (set_intersection(I, A, B) != 0)
-    return 0;
+  if (set_intersection(&I, A, B) != 0)
+    error_exit("Failure in set_intersection.");
 
-  set_traverse(I, printset);
+  /* set_traverse(I, printset); */
 
-  for (int i = 0; i < set_size(I); i++) {
-    pTest = &(arrI[i]);
-    if (set_remove(I, (void **)&pTest) != 0)
-      return 0; 
-  }
+  if (set_size(I) != 1 || *((int *)I->head->data) != 2)
+    error_exit("Failure in set_intersection.");
 
-  set_destroy(A);
-  set_destroy(B);
-  set_destroy(I);
+  set_destroy(&A);
+  set_destroy(&B);
+  set_destroy(&I);
 
   return 1;
 }
 
 /******************************************************************************
- * FUNCTION:	    test_subtraction
+ * FUNCTION:	    test_difference
  *
- * DESCRIPTION:	    Tests the set_subtraction function.
+ * DESCRIPTION:	    Tests the set_difference function.
  *
  * ARGUMENTS:	    A: (Set *) -- The first set to use in the tests.
  *		    B: (Set *) -- The second set to use in the tests.
@@ -766,16 +796,16 @@ static int test_intersection(Set * A, Set * B, Set * I)
  *
  * NOTES:	    none.
  ***/
-static int test_subtraction(Set * A, Set * B, Set * S)
+static int test_difference(Set * A, Set * B, Set * S)
 {
   /* {0, 1, 2} - {2, 4, 6} = {0, 1} */
   int arrA[] = {0, 1, 2};
   int arrB[] = {2, 4, 6};
-  int arrS[] = {0, 1};
-  int * pTest;
 
-  set_init(A, match, NULL);
-  set_init(B, match, NULL);
+  if ((A = set_create(match, NULL)) == NULL)
+    return 0;
+  if ((B = set_create(match, NULL)) == NULL)
+    return 0;
   
   for (int i = 0; i < 3; i++)
     set_insert(A, (void *)&(arrA[i]));
@@ -783,18 +813,14 @@ static int test_subtraction(Set * A, Set * B, Set * S)
   for (int i = 0; i < 3; i++)
     set_insert(B, (void *)&(arrB[i]));
 
-  if (set_difference(S, A, B) != 0)
+  if (set_difference(&S, A, B) != 0)
     return 0;
 
-  for (int i = 0; i < set_size(S); i++) {
-    pTest = &(arrS[i]);
-    if (set_remove(S, (void **)&pTest) != 0)
-      return 0; 
-  }
+  /* set_traverse(S, printset); */
 
-  set_destroy(A);
-  set_destroy(B);
-  set_destroy(S);
+  set_destroy(&A);
+  set_destroy(&B);
+  set_destroy(&S);
 
   return 1;
 }
