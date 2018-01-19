@@ -49,12 +49,12 @@
 int match(const void *, const void *);
 void printset(void *);
 
-static int test_remove(Set *);
-static int test_insert(Set *);
-static int test_isequal(Set *, Set *);
-static int test_union(Set *, Set *, Set *);
-static int test_intersection(Set *, Set *, Set *);
-static int test_difference(Set *, Set *, Set *);
+static int test_remove(set *);
+static int test_insert(set *);
+static int test_isequal(set *, set *);
+static int test_union(set *, set *, set *);
+static int test_intersection(set *, set *, set *);
+static int test_difference(set *, set *, set *);
 #endif /* CONFIG_DEBUG_SET */
 
 /******************************************************************************
@@ -68,21 +68,21 @@ static int test_difference(Set *, Set *, Set *);
 int main(int argc, char * argv[])
 {
   /* STANDARD TEST. */
-  Set * set = NULL;
+  set * group = NULL;
   int * pNum = NULL;
 
-  if ((set = set_create(match, free)) == NULL)
+  if ((group = set_create(match, free)) == NULL)
     error_exit("Could not allocate memory for set!");
 
   srand((unsigned)time(NULL));
 
   /* Inserting */
   printf("==== Inserting ====\n");
-  while (set_size(set) < 10) {
+  while (set_size(group) < 10) {
     pNum = malloc(sizeof(int));
     *pNum = rand() % 10;
     printf("int %d @ %p", *pNum, pNum);
-    int ret = set_insert(set, (void *)pNum);
+    int ret = set_insert(group, (void *)pNum);
     if (ret < 0) {
       printf(": FAILED\n");
       free(pNum);
@@ -96,9 +96,9 @@ int main(int argc, char * argv[])
 
   /* Removing */
   printf("==== Removing =====\n");
-  while (set_size(set) > 0) {
+  while (set_size(group) > 0) {
     pNum = NULL;
-    if (set_remove(set, (void **)&pNum) < 0) {
+    if (set_remove(group, (void **)&pNum) < 0) {
       error_exit("Error in set_remove");
     } else {
       printf("int %d @ %p\n", *pNum, pNum);
@@ -106,17 +106,17 @@ int main(int argc, char * argv[])
     free(pNum);
   }
 
-  set_destroy(&set);
+  set_destroy(&group);
 
-  assert(test_remove(set) == 1);
-  assert(test_insert(set) == 1);
+  assert(test_remove(group) == 1);
+  assert(test_insert(group) == 1);
 
-  Set *set2 = NULL, *set3 = NULL;
+  set * set2 = NULL, *set3 = NULL;
 
-  assert(test_isequal(set, set2));
-  assert(test_union(set, set2, set3));
-  assert(test_intersection(set, set2, set3));
-  assert(test_difference(set, set2, set3));
+  assert(test_isequal(group, set2));
+  assert(test_union(group, set2, set3));
+  assert(test_intersection(group, set2, set3));
+  assert(test_difference(group, set2, set3));
 
   return 0;
 }
@@ -175,13 +175,13 @@ void printset(void * data)
  *
  * DESCRIPTION:	    Tests the set_remove function.
  *
- * ARGUMENTS:	    set: (Set *) -- a set to use for the tests.
+ * ARGUMENTS:	    set: (set *) -- a set to use for the tests.
  *
  * RETURN:	    (int) -- 1 if the test passes, 0 if the tests fail.
  *
  * NOTES:	    none.
  ***/
-static int test_remove(Set * set)
+static int test_remove(set * set)
 {
   if ((set = set_create(match, free)) == NULL)
     return 0;
@@ -198,13 +198,13 @@ static int test_remove(Set * set)
  *
  * DESCRIPTION:	    Tests the set_insert function.
  *
- * ARGUMENTS:	    set: (Set *) -- a set to use for the tests.
+ * ARGUMENTS:	    set: (set *) -- a set to use for the tests.
  *
  * RETURN:	    (int) -- 1 if the tests pass, 0 if they fail.
  *
  * NOTES:	    none.
  ***/
-static int test_insert(Set * set)
+static int test_insert(set * set)
 {
   if ((set = set_create(match, free)) == NULL)
     return 0;
@@ -227,14 +227,14 @@ static int test_insert(Set * set)
  *
  * DESCRIPTION:	    Tests the set_isequal function.
  *
- * ARGUMENTS:	    A: (Set *) -- The first set to use in the tests.
- *		    B: (Set *) -- The second set to use in the tests.
+ * ARGUMENTS:	    A: (set *) -- The first set to use in the tests.
+ *		    B: (set *) -- The second set to use in the tests.
  *
  * RETURN:	    (int) -- 1 if the test passes, 0 otherwise.
  *
  * NOTES:	    none.
  ***/
-static int test_isequal(Set * A, Set * B)
+static int test_isequal(set * A, set * B)
 {
   /* {1} = {1} */
   if ((A = set_create(match, free)) == NULL)
@@ -260,15 +260,15 @@ static int test_isequal(Set * A, Set * B)
  *
  * DESCRIPTION:	    Tests the set_union function.
  *
- * ARGUMENTS:	    A: (Set *) -- The first set to use in the tests.
- *		    B: (Set *) -- The second set to use in the tests.
- *		    C: (Set *) -- The third set to use in the tests.
+ * ARGUMENTS:	    A: (set *) -- The first set to use in the tests.
+ *		    B: (set *) -- The second set to use in the tests.
+ *		    C: (set *) -- The third set to use in the tests.
  *
  * RETURN:	    (int) -- 1 if the test passes, 0 otherwise.
  *
  * NOTES:	    none.
  ***/
-static int test_union(Set * A, Set * B, Set * U)
+static int test_union(set * A, set * B, set * U)
 {
   /* {0, 1, 2} U {2, 4, 6} = {0, 1, 2, 4, 6} */
   int arrA[] = {0, 1, 2};
@@ -308,15 +308,15 @@ static int test_union(Set * A, Set * B, Set * U)
  *
  * DESCRIPTION:	    Tests the set_intersection function.
  *
- * ARGUMENTS:	    A: (Set *) -- the first set to use in the tests.
- *		    B: (Set *) -- the second set to use in the tests.
- *		    C: (Set *) -- the third set to use in the tests.
+ * ARGUMENTS:	    A: (set *) -- the first set to use in the tests.
+ *		    B: (set *) -- the second set to use in the tests.
+ *		    C: (set *) -- the third set to use in the tests.
  *
  * RETURN:	    (int) -- 1 if the test passes, 0 otherwise.
  *
  * NOTES:	    none.
  ***/
-static int test_intersection(Set * A, Set * B, Set * I)
+static int test_intersection(set * A, set * B, set * I)
 {
   /* {0, 1, 2} ^ {2, 4, 6} = {2} */
   int arrA[] = {0, 1, 2};
@@ -355,15 +355,15 @@ static int test_intersection(Set * A, Set * B, Set * I)
  *
  * DESCRIPTION:	    Tests the set_difference function.
  *
- * ARGUMENTS:	    A: (Set *) -- The first set to use in the tests.
- *		    B: (Set *) -- The second set to use in the tests.
- *		    C: (Set *) -- The third set to use in the tests.
+ * ARGUMENTS:	    A: (set *) -- The first set to use in the tests.
+ *		    B: (set *) -- The second set to use in the tests.
+ *		    C: (set *) -- The third set to use in the tests.
  *
  * RETURN:	    (int) -- 1 if the tests pass, 0 otherwise.
  *
  * NOTES:	    none.
  ***/
-static int test_difference(Set * A, Set * B, Set * S)
+static int test_difference(set * A, set * B, set * S)
 {
   /* {0, 1, 2} - {2, 4, 6} = {0, 1} */
   int arrA[] = {0, 1, 2};

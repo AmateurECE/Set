@@ -19,27 +19,27 @@
  * TYPE DEFINITIONS
  ***/
 
-typedef struct _Member_ {
+typedef struct _member_ {
 
   void * data;
-  struct _Member_ * next;
+  struct _member_ * next;
 
-} Member;
+} member;
 
-/* TODO: Rename the Set structs
+/* TODO: Rename the set structs
  */
 
-typedef struct _Set_ {
+typedef struct {
 
   int size;
 
   int (*match)(const void *, const void *);
   void (*destroy)(void *);
 
-  Member * head;
-  Member * tail;
+  member * head;
+  member * tail;
 
-} Set;
+} set;
 
 /******************************************************************************
  * MACRO DEFINITIONS
@@ -55,33 +55,33 @@ typedef struct _Set_ {
  * instead of set_union_func and set_intersection_func, respectively.
  */
 #define set_union(Setu, ...)				\
-  (set_union_func(Setu, (Set * []){__VA_ARGS__, NULL}))
+  (set_union_func(Setu, (set * []){__VA_ARGS__, NULL}))
 
 #define set_intersection(Seti, ...)				\
-  (set_intersection_func(Seti, (Set * []){__VA_ARGS__, NULL}))
+  (set_intersection_func(Seti, (set * []){__VA_ARGS__, NULL}))
 
 /******************************************************************************
  * API FUNCTION PROTOTYPES
  ***/
 
-extern Set * set_create(int (*match)(const void *, const void *),
+extern set * set_create(int (*match)(const void *, const void *),
 		       void (*destroy)(void *));
-extern int set_ismember(const Set * set, const void * data);
-extern int set_insert(Set * set, void * data);
-extern int set_remove(Set * set, void ** data);
-extern int set_traverse(Set * set, void (*func)(void *));
-extern void set_destroy(Set ** set);
+extern int set_ismember(const set * set, const void * data);
+extern int set_insert(set * set, void * data);
+extern int set_remove(set * set, void ** data);
+extern int set_traverse(set * set, void (*func)(void *));
+extern void set_destroy(set ** set);
 
 /* These functions: */
-extern int set_union_func(Set **, Set * []);
-extern int set_intersection_func(Set **, Set * []);
+extern int set_union_func(set **, set * []);
+extern int set_intersection_func(set **, set * []);
 /* Should NEVER be called directly. Use the wrapper macros defined above. */
 
-extern int set_difference(Set ** dest,
-			  const Set * source1,
-			  const Set * source2);
-extern int set_issubset(const Set * subset, const Set * masterset);
-extern int set_isequal(const Set * set1, const Set * set2);
+extern int set_difference(set ** dest,
+			  const set * source1,
+			  const set * source2);
+extern int set_issubset(const set * subset, const set * masterset);
+extern int set_isequal(const set * set1, const set * set2);
 
 #endif /* __ET_SET_H__ */
 
