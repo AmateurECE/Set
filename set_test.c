@@ -29,6 +29,19 @@
  ***/
 
 #ifdef CONFIG_DEBUG_SET
+#define FAIL "\033[1;31m"
+
+/* This is specific to my terminal, I think. But since it only affects the
+ * colors of the test output, it doesn't really matter
+ */
+#ifdef __APPLE__
+#   define PASS "\033[1;32m"
+#else
+#   define PASS "\033[1;39m"
+#endif
+
+#define NC	"\033[0m"
+
 #define error_exitf(str, ...) {			\
     fprintf(stderr, str, __VA_ARGS__);		\
     printf("\n");				\
@@ -68,55 +81,23 @@ static int test_difference(set *, set *, set *);
 int main(int argc, char * argv[])
 {
   /* STANDARD TEST. */
-  set * group = NULL;
-  int * pNum = NULL;
-
-  if ((group = set_create(match, free)) == NULL)
-    error_exit("Could not allocate memory for set!");
-
+  set * set1 = NULL, *set2 = NULL, *set3 = NULL;
   srand((unsigned)time(NULL));
 
-  /* Inserting */
-  printf("==== Inserting ====\n");
-  while (set_size(group) < 10) {
-    pNum = malloc(sizeof(int));
-    *pNum = rand() % 10;
-    printf("int %d @ %p", *pNum, pNum);
-    int ret = set_insert(group, (void *)pNum);
-    if (ret < 0) {
-      printf(": FAILED\n");
-      free(pNum);
-    } else if (ret > 0) {
-      printf(": IS A MEMBER\n");
-      free(pNum);
-    } else {
-      printf("\n");
-    }
-  }
+  printf("Test remove (set_remove):\t\t%s\n"
+	 "Test insert (set_insert):\t\t%s\n"
+	 "Test isequal (set_isequal):\t\t%s\n"
+	 "Test union (set_union):\t\t\t%s\n"
+	 "Test intersection (set_intersection):\t%s\n"
+	 "Test difference (set_difference):\t%s\n",
 
-  /* Removing */
-  printf("==== Removing =====\n");
-  while (set_size(group) > 0) {
-    pNum = NULL;
-    if (set_remove(group, (void **)&pNum) < 0) {
-      error_exit("Error in set_remove");
-    } else {
-      printf("int %d @ %p\n", *pNum, pNum);
-    }
-    free(pNum);
-  }
-
-  set_destroy(&group);
-
-  assert(test_remove(group) == 1);
-  assert(test_insert(group) == 1);
-
-  set * set2 = NULL, *set3 = NULL;
-
-  assert(test_isequal(group, set2));
-  assert(test_union(group, set2, set3));
-  assert(test_intersection(group, set2, set3));
-  assert(test_difference(group, set2, set3));
+	 test_remove(set1) ? PASS"PASS"NC : FAIL"FAIL"NC,
+	 test_insert(set1) ? PASS"PASS"NC : FAIL"FAIL"NC,
+	 test_isequal(set1, set2) ? PASS"PASS"NC : FAIL"FAIL"NC,
+	 test_union(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
+	 test_intersection(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
+	 test_difference(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC
+	 );
 
   return 0;
 }
