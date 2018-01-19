@@ -26,9 +26,6 @@ typedef struct _member_ {
 
 } member;
 
-/* TODO: Rename the set structs
- */
-
 typedef struct {
 
   int size;
