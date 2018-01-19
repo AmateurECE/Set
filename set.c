@@ -11,7 +11,7 @@
  *
  * CREATED:	    05/09/2017
  *
- * LAST EDITED:	    01/18/2018
+ * LAST EDITED:	    01/19/2018
  ***/
 
 /******************************************************************************
@@ -150,11 +150,13 @@ int set_insert(set * group, void * data)
  ***/
 int set_remove(set * group, void ** data)
 {
+  if (group == NULL || data == NULL || *data == NULL)
+    return -1;
+
   if (set_ismember(group, *data) != 1 && *data != NULL)
     return -1;
 
   member * old;
-
   if (*data == NULL) {
     /* Remove the first element in the set. */
     old = group->head;
@@ -162,19 +164,15 @@ int set_remove(set * group, void ** data)
 
     if (group->head == NULL)
       group->tail = NULL;
-
   } else {
 
     member * current = group->head;
-
     if (group->match(current->data, *data) != 1) {
-
       while (group->match(current->next->data, *data) != 1) {
 	current = current->next;
       }
 
       old = current->next;
-
       if (current->next == group->tail)
 	current->next = NULL;
       else
@@ -184,7 +182,6 @@ int set_remove(set * group, void ** data)
 
       old = current;
       group->head = group->head->next;
-      
       if (group->head == NULL)
 	group->tail = NULL;
 

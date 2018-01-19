@@ -1,1 +1,3 @@
 ./test.c: Improve format of testing (Similar to bitree) | id:192513980a848088cb7968ea8af8acdeffcee2af
+./test.c: static int test_create(); | id:c3c2428942aeab4461c6737d6c59ed7c40d48859
+./test.c: static int test_destroy(); | id:edffc0553e3ffe49e00d4b2a200562fa0602ec15

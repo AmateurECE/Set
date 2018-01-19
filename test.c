@@ -7,7 +7,7 @@
  *
  * CREATED:	    01/18/2018
  *
- * LAST EDITED:	    01/18/2018
+ * LAST EDITED:	    01/19/2018
  ***/
 
 /******************************************************************************
@@ -61,8 +61,12 @@
 #ifdef CONFIG_DEBUG_SET
 int match(const void *, const void *);
 void printset(void *);
+static set * prep_set();
 
-static int test_remove(set *);
+/* TODO: static int test_create();
+ * TODO: static int test_destroy();
+ */
+static int test_remove();
 static int test_insert(set *);
 static int test_isequal(set *, set *);
 static int test_union(set *, set *, set *);
@@ -80,24 +84,23 @@ static int test_difference(set *, set *, set *);
 #ifdef CONFIG_DEBUG_SET
 int main(int argc, char * argv[])
 {
-  /* STANDARD TEST. */
   set * set1 = NULL, *set2 = NULL, *set3 = NULL;
   srand((unsigned)time(NULL));
 
   printf("Test remove (set_remove):\t\t%s\n"
-	 "Test insert (set_insert):\t\t%s\n"
-	 "Test isequal (set_isequal):\t\t%s\n"
-	 "Test union (set_union):\t\t\t%s\n"
-	 "Test intersection (set_intersection):\t%s\n"
-	 "Test difference (set_difference):\t%s\n",
+  	 "Test insert (set_insert):\t\t%s\n"
+  	 "Test isequal (set_isequal):\t\t%s\n"
+  	 "Test union (set_union):\t\t\t%s\n"
+  	 "Test intersection (set_intersection):\t%s\n"
+  	 "Test difference (set_difference):\t%s\n",
 
-	 test_remove(set1) ? PASS"PASS"NC : FAIL"FAIL"NC,
-	 test_insert(set1) ? PASS"PASS"NC : FAIL"FAIL"NC,
-	 test_isequal(set1, set2) ? PASS"PASS"NC : FAIL"FAIL"NC,
-	 test_union(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
-	 test_intersection(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
-	 test_difference(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC
-	 );
+  	 test_remove(set1) ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_insert(set1) ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_isequal(set1, set2) ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_union(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_intersection(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_difference(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC
+  	 );
 
   return 0;
 }
@@ -152,6 +155,41 @@ void printset(void * data)
 }
 
 /******************************************************************************
+ * FUNCTION:	    prep_set
+ *
+ * DESCRIPTION:	    Prepares a generic set structure for testing.
+ *
+ * ARGUMENTS:	    none.
+ *
+ * RETURN:	    set * -- a pointer to a new set, or NULL if an error has
+ *		    occurred.
+ *
+ * NOTES:	    none.
+ ***/
+static set * prep_set()
+{
+  set * group = NULL;
+  if ((group = set_create(match, free)) == NULL)
+    return NULL;
+
+  int * pNum = NULL;
+  for (int i = 0; i < 3; i++) {
+    if ((pNum = malloc(sizeof(int))) == NULL)
+      goto error_except;
+    *pNum = rand() % 10;
+    if (set_insert(group, (void *)pNum))
+      goto error_except;
+  }
+
+  return group;
+
+ error_except: {
+    set_destroy(&group);
+    return NULL;
+  }
+}
+
+/******************************************************************************
  * FUNCTION:	    test_remove
  *
  * DESCRIPTION:	    Tests the set_remove function.
@@ -160,18 +198,38 @@ void printset(void * data)
  *
  * RETURN:	    (int) -- 1 if the test passes, 0 if the tests fail.
  *
- * NOTES:	    none.
+ * NOTES:	    Test cases:
+ *			- NULL, nonnull
+ *			- nonnull, NULL
+ *			- data is in the set
+ *			- data is not in the set
  ***/
-static int test_remove(set * set)
+static int test_remove()
 {
-  if ((set = set_create(match, free)) == NULL)
+  /* NULL, nonnull */
+  set * group = NULL;
+  int * pNum = NULL;
+  if ((group = prep_set()) == NULL)
     return 0;
-  int * pTest = malloc(sizeof(int));
-  *pTest = 1;
-  int ret = set_remove(set, (void **)&pTest);
-  set_destroy(&set);
-  free(pTest);
-  return ret == -1;
+  if (!set_remove(NULL, group->head->data))
+    return 0;
+
+  /* nonnull, NULL */
+  if (!set_remove(group, NULL))
+    return 0;
+
+  /* data is in the set */
+  if (set_remove(group, &(group->head->data)))
+    return 0;
+
+  /* data is not in the set */
+  if ((pNum = malloc(sizeof(int))) == NULL)
+    return 0;
+  *pNum = 11;
+  if (!set_remove(group, (void *)&pNum))
+    return 0;
+
+  return 1;
 }
 
 /******************************************************************************
