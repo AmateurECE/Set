@@ -7,7 +7,7 @@
 #
 # CREATED:	    06/07/2017
 #
-# LAST EDITED:	    01/04/2018
+# LAST EDITED:	    01/18/2018
 ###
 
 CC=gcc
@@ -19,7 +19,7 @@ endif
 
 .PHONY: debug clean
 
-set:
+set: set_test.c
 
 debug: set
 
