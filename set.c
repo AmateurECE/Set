@@ -114,18 +114,13 @@ Set * set_create(int (*match)(const void *, const void *),
  *		    an error has occurred.
  *
  * NOTES:	    O(n)
- *		    TODO: Fix all usage of set_ismember to reflect return value
  ***/
 int set_ismember(const Set * set, const void * data)
 {
-  if (set == NULL || data == NULL)
-    return -1;
-
-  if (set_isempty(set))
+  if (set == NULL || data == NULL || set_isempty(set))
     return 0;
 
   Member * current = set->head;
-
   while ((set->match(current->data, data) != 1) && set_next(current))
     ;
 
@@ -260,7 +255,7 @@ int set_traverse(Set * set, void (*func)(void *))
 {
   Member * current;
 
-  if (set == NULL || set_isempty(set))
+  if (set == NULL || set_isempty(set) || func == NULL)
     return -1;
 
   for (current = set->head; current != NULL; set_next(current))
@@ -310,10 +305,11 @@ void set_destroy(Set ** set)
  * DESCRIPTION:	    Performs the union set operation and places the result in
  *		    setu.
  *
- * ARGUMENTS:	    setu: (Set *) -- will contain a pointer to the union of all
- *			    sets at the end of the call.
- *		    ...: (Set *) -- all further parameters will be cast to
- *			    pointer to Set and unioned.
+ * ARGUMENTS:	    setu: (Set **) -- will contain a pointer to the union of
+ *			all sets at the end of the call.
+ *		    sets: (Set * []) -- An array of sets to operate on. If the
+ *			set_union() macro was used (as it should be), the final
+ *			set in the array will be NULL.
  *
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
@@ -353,19 +349,16 @@ int set_union_func(Set ** setu,  Set * sets[])
  * DESCRIPTION:	    Performs the intersection set operation and places the
  *		    result in seti.
  *
- * ARGUMENTS:	    seti: (Set *) -- will contain a pointer to the intersection
- *			of all sets at the end of the call. May be NULL, or
- *			the empty set. All other values return error.
- *		    numargs: int -- contains the number of arguments passed.
- *		    ...: (Set *) -- all further parameters will be cast to
- *			 pointer to Set and intersected.
+ * ARGUMENTS:	    seti: (Set **) -- will contain a pointer to the
+ *			intersection of all sets at the end of the call. May be
+ *			NULL, or the empty set. All other values return error.
+ *		    sets: (Set * []) -- An array of sets to operate on. If the
+ *			set_union() macro was used (as it should be), the final
+ *			set in the array will be NULL.
  *
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
  * NOTES:	    O(mn), where m is the number of sets passed.
- *		    TODO: set_intersection_func - Return intersecting set.
- *		    TODO: set_intersection_func - Sanitize inputs accordingly.
- *		    TODO: Fix params for all set operation functions.
  ***/
 int set_intersection_func(Set ** seti, Set * sets[])
 {
@@ -397,7 +390,7 @@ int set_intersection_func(Set ** seti, Set * sets[])
  * DESCRIPTION:	    Performs the set difference operation and places the
  *		    result in setd.
  *
- * ARGUMENTS:	    setd: (Set *) -- will contain a pointer to the difference
+ * ARGUMENTS:	    setd: (Set **) -- will contain a pointer to the difference
  *			  of all sets at the end of the call.
  *		    set1: (const Set *) -- the minuend of the subtraction.
  *		    set2: (const Set *) -- the difference of the subtraction.
