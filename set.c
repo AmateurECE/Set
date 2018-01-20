@@ -48,6 +48,8 @@
 set * set_create(int (*match)(const void *, const void *),
 		 void (*destroy)(void *))
 {
+  if (match == NULL)
+    return NULL;
   set * group = NULL;
   if ((group = malloc(sizeof(set))) == NULL)
     return NULL;
@@ -238,9 +240,11 @@ int set_traverse(set * group, void (*func)(void *))
  ***/
 void set_destroy(set ** group)
 {
+  if (group == NULL || *group == NULL)
+    return;
+
   void * data;
   member * old;
-
   while (set_size(*group) > 0) {
     data = (*group)->head->data;
     old = (*group)->head;

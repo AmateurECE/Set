@@ -1,3 +1,6 @@
-./test.c: Improve format of testing (Similar to bitree) | id:192513980a848088cb7968ea8af8acdeffcee2af
-./test.c: static int test_create(); | id:c3c2428942aeab4461c6737d6c59ed7c40d48859
+./test.c: Update test_isequal | id:037f1504fd784d9a7a6ad4935da795f8e92beccb
+./test.c: Update test_difference | id:6619e5fe3288d52df8eb0b3df49f3962e2fef656
+./test.c: Update test_intersection | id:72824277a07467a59d699619482e3665b316b30e
+./test.c: Update test_union | id:a0869ba19b45f689d65cc9df12d3dd51b18b829e
+./test.c: Update test_insert | id:dd6f66edaae5b86aa3f3affb328fd6ddbc601ca4
 ./test.c: static int test_destroy(); | id:edffc0553e3ffe49e00d4b2a200562fa0602ec15

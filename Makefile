@@ -12,7 +12,9 @@
 
 CC=gcc
 ifeq ($(MAKECMDGOALS),debug)
-	CFLAGS = -g -std=c99 -O0 -Wall -D CONFIG_DEBUG_SET
+	CFLAGS = -g -std=c99 -O0 -Wall \
+	-D CONFIG_DEBUG_SET -D CONFIG_TEST_LOG \
+	-Wno-format
 else
 	CFLAGS = -std=c99 -Wall -O3
 endif
