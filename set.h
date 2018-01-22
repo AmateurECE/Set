@@ -9,7 +9,7 @@
  *
  * CREATED:	    05/09/2017
  *
- * LAST EDITED:	    01/18/2018
+ * LAST EDITED:	    01/22/2018
  ***/
 
 #ifndef __ET_SET_H__
@@ -65,7 +65,7 @@ extern set * set_create(int (*match)(const void *, const void *),
 		       void (*destroy)(void *));
 extern int set_ismember(const set * set, const void * data);
 extern int set_insert(set * set, void * data);
-extern int set_remove(set * set, void ** data);
+extern int set_remove(set * set, const void ** data);
 extern int set_traverse(set * set, void (*func)(void *));
 extern void set_destroy(set ** set);
 

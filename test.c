@@ -7,7 +7,7 @@
  *
  * CREATED:	    01/18/2018
  *
- * LAST EDITED:	    01/19/2018
+ * LAST EDITED:	    01/22/2018
  ***/
 
 /******************************************************************************
@@ -73,7 +73,7 @@
   "====================\n\n"
 #else
 #   define log(...)
-#   define log_fail(...)
+#   define log_fail(...) { return 0; }
 #endif /* CONFIG_TEST_LOG */
 #endif /* CONFIG_DEBUG_SET */
 
@@ -99,7 +99,7 @@ static set * prep_set();
 static int test_create();
 static int test_destroy();
 static int test_remove();
-static int test_insert(set *);
+static int test_insert();
 static int test_isequal(set *, set *);
 static int test_union(set *, set *, set *);
 static int test_intersection(set *, set *, set *);
@@ -141,10 +141,10 @@ int main(int argc, char * argv[])
   	 "Test intersection (set_intersection):\t%s\n"
   	 "Test difference (set_difference):\t%s\n",
 
-  	 test_create() ? PASS"PASS"NC : FAIL"FAIL"NC,
-	 test_destroy() ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_remove() ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_insert(set1) ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_create()	? PASS"PASS"NC : FAIL"FAIL"NC,
+	 test_destroy()	? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_remove()	? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_insert()	? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_isequal(set1, set2) ? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_union(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_intersection(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
@@ -241,6 +241,8 @@ static set * prep_set()
     if ((ret = set_insert(group, (void *)pNum)) == -1) {
       log("prep_set: set_insert() -> %d\n", ret);
       goto error_except;
+    } else if (ret == 1) {
+      free(pNum);
     }
   }
 
@@ -276,10 +278,12 @@ static int test_create()
   /* nonnull, NULL */
   if ((group = set_create(match, NULL)) == NULL)
     log_fail("test_create: 2 failed--set_create() -> NULL\n");
+  set_destroy(&group);
 
   /* nonnull, nonnull */
   if ((group = set_create(match, free)) == NULL)
     log_fail("test_create: 3 failed--set_create() -> NULL\n");
+  set_destroy(&group);
 
   return 1;
 }
@@ -351,7 +355,7 @@ static int test_remove()
     log_fail("test_remove: 2 failed--set_remove() -> %d\n", ret);
 
   /* data is in the set */
-  if ((ret = set_remove(group, &(group->head->data))))
+  if ((ret = set_remove(group, (const void **)&(group->head->data))))
     log_fail("test_remove: 3 failed--set_remove() -> %d\n", ret);
 
   /* data is not in the set */
@@ -361,6 +365,8 @@ static int test_remove()
   if (!(ret = set_remove(group, (void *)&pNum)))
     log_fail("test_remove: 4 failed--set_remove() -> %d\n", ret);
 
+  set_destroy(&group);
+  free(pNum);
   return 1;
 }
 
@@ -374,22 +380,33 @@ static int test_remove()
  * RETURN:	    (int) -- 1 if the tests pass, 0 if they fail.
  *
  * NOTES:	    TODO: Update test_insert
+ *		    Test cases:
+ *			1 - NULL, nonnull
+ *			2 - nonnull, NULL
+ *			3 - Otherwise
  ***/
-static int test_insert(set * set)
+static int test_insert()
 {
-  if ((set = set_create(match, free)) == NULL)
-    return 0;
-  int * pTest = malloc(sizeof(int));
-  *pTest = 1;
-  if (set_insert(set, (void *)pTest) < 0)
-    error_exit("There was a problem in test_insert: set_insert");
+  /* NULL, nonnull */
+  set * group = NULL;
+  int * pNum = NULL;
+  if ((group = prep_set()) == NULL)
+    log_fail("test_insert: 1 failed--prep_set() -> NULL\n");
+  if ((pNum = malloc(sizeof(int))) == NULL)
+    log_fail("test_insert: 1 failed--malloc() -> NULL\n");
+  *pNum = 11; /* Numbers greater than ten will not appear in the set */
+  if (!set_insert(NULL, pNum))
+    log_fail("test_insert: 1 failed--set_insert() -> 0\n");
 
-  pTest = malloc(sizeof(int));
-  *pTest = 2;
-  if (set_insert(set, (void *)pTest))
-    error_exit("There was a problem in test_insert: set_insert");
-  
-  set_destroy(&set);
+  /* nonnull, NULL */
+  if (!set_insert(group, NULL))
+    log_fail("test_insert: 2 failed--set_insert() -> 0\n");
+
+  /* Otherwise */
+  if (set_insert(group, pNum))
+    log_fail("test_insert: 3 failed--set_insert() !-> 0\n");
+
+  set_destroy(&group);
   return 1;
 }
 
@@ -463,7 +480,7 @@ static int test_union(set * A, set * B, set * U)
 
   for (int i = 0; i < set_size(U); i++) {
     pTest = &(arrU[i]);
-    if (set_remove(U, (void **)&pTest) != 0)
+    if (set_remove(U, (const void **)&pTest) != 0)
       return 0; 
   }
 

@@ -3,4 +3,3 @@
 ./test.c: Update test_intersection | id:72824277a07467a59d699619482e3665b316b30e
 ./test.c: Update test_union | id:a0869ba19b45f689d65cc9df12d3dd51b18b829e
 ./test.c: Update test_insert | id:dd6f66edaae5b86aa3f3affb328fd6ddbc601ca4
-./test.c: static int test_destroy(); | id:edffc0553e3ffe49e00d4b2a200562fa0602ec15

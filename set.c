@@ -11,7 +11,7 @@
  *
  * CREATED:	    05/09/2017
  *
- * LAST EDITED:	    01/19/2018
+ * LAST EDITED:	    01/22/2018
  ***/
 
 /******************************************************************************
@@ -110,7 +110,7 @@ int set_ismember(const set * group, const void * data)
  ***/
 int set_insert(set * group, void * data)
 {
-  if (data == NULL)
+  if (group == NULL || data == NULL)
     return -1;
 
   if (set_ismember(group, data))
@@ -150,7 +150,7 @@ int set_insert(set * group, void * data)
  *
  * NOTES:	    O(n)
  ***/
-int set_remove(set * group, void ** data)
+int set_remove(set * group, const void ** data)
 {
   if (group == NULL || data == NULL || *data == NULL)
     return -1;
@@ -190,9 +190,9 @@ int set_remove(set * group, void ** data)
     }
   }
 
-  *data = old->data;
+  if (group->destroy != NULL)
+    group->destroy(old->data);
   free(old);
-
   group->size--;
   return 0;
 }

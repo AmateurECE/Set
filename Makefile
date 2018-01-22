@@ -7,14 +7,15 @@
 #
 # CREATED:	    06/07/2017
 #
-# LAST EDITED:	    01/19/2018
+# LAST EDITED:	    01/22/2018
 ###
 
 CC=gcc
 ifeq ($(MAKECMDGOALS),debug)
 	CFLAGS = -g -std=c99 -O0 -Wall \
-	-D CONFIG_DEBUG_SET -D CONFIG_TEST_LOG \
-	-Wno-format
+	-D CONFIG_DEBUG_SET \
+	-Wno-format \
+#	-D CONFIG_TEST_LOG
 else
 	CFLAGS = -std=c99 -Wall -O3
 endif
