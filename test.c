@@ -100,7 +100,7 @@ static int test_create();
 static int test_destroy();
 static int test_remove();
 static int test_insert();
-static int test_isequal(set *, set *);
+static int test_isequal();
 static int test_union(set *, set *, set *);
 static int test_intersection(set *, set *, set *);
 static int test_difference(set *, set *, set *);
@@ -145,7 +145,7 @@ int main(int argc, char * argv[])
 	 test_destroy()	? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_remove()	? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_insert()	? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_isequal(set1, set2) ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_isequal()	? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_union(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_intersection(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_difference(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC
@@ -329,7 +329,7 @@ static int test_destroy()
  *
  * DESCRIPTION:	    Tests the set_remove function.
  *
- * ARGUMENTS:	    set: (set *) -- a set to use for the tests.
+ * ARGUMENTS:	    none.
  *
  * RETURN:	    (int) -- 1 if the test passes, 0 if the tests fail.
  *
@@ -375,12 +375,11 @@ static int test_remove()
  *
  * DESCRIPTION:	    Tests the set_insert function.
  *
- * ARGUMENTS:	    set: (set *) -- a set to use for the tests.
+ * ARGUMENTS:	    none.
  *
  * RETURN:	    (int) -- 1 if the tests pass, 0 if they fail.
  *
- * NOTES:	    TODO: Update test_insert
- *		    Test cases:
+ * NOTES:	    Test cases:
  *			1 - NULL, nonnull
  *			2 - nonnull, NULL
  *			3 - Otherwise
@@ -415,32 +414,62 @@ static int test_insert()
  *
  * DESCRIPTION:	    Tests the set_isequal function.
  *
- * ARGUMENTS:	    A: (set *) -- The first set to use in the tests.
- *		    B: (set *) -- The second set to use in the tests.
+ * ARGUMENTS:	    none.
  *
  * RETURN:	    (int) -- 1 if the test passes, 0 otherwise.
  *
- * NOTES:	    TODO: Update test_isequal
+ * NOTES:	    Test cases:
+ *			1 - NULL, nonnull
+ *			2 - nonnull, NULL
+ *			3 - (0), set
+ *			4 - set, (0)
+ *			5 - set, !set
+ *			6 - set, set
  ***/
-static int test_isequal(set * A, set * B)
+static int test_isequal()
 {
-  /* {1} = {1} */
-  if ((A = set_create(match, free)) == NULL)
-    return 0;
+  set *A = NULL, *B = NULL;
+  if ((A = prep_set()) == NULL)
+    log_fail("test_isequal: 1 failed--prep_set() -> NULL\n");
+
+  /* NULL, nonnull */
+  if (set_isequal(B, A))
+    log_fail("test_isequal: 1 failed--set_isequal() -> 1\n");
+
+  /* nonnull, NULL */
+  if (set_isequal(A, B))
+    log_fail("test_isequal: 2 failed--set_isequal() -> 1\n");
+
+  /* (0), set */
   if ((B = set_create(match, free)) == NULL)
-    return 0;
+    log_fail("test_isequal: 3 failed--set_create() -> NULL\n");
+  if (set_isequal(B, A))
+    log_fail("test_isequal: 3 failed--set_isequal() -> 1\n");
 
-  int * pA = malloc(sizeof(int));
-  int * pB = malloc(sizeof(int));
-  *pA = 1, *pB = 1;
+  /* set, (0) */
+  if (set_isequal(A, B))
+    log_fail("test_isequal: 4 failed--set_isequal() -> 1\n");
 
-  if (set_insert(A, pA) != 0 || set_insert(B, pB) != 0)
-    error_exit("There was a problem in test_isequal: set_insert");
+  /* set, !set */
+  set_destroy(&B);
+  if ((B = prep_set()) == NULL)
+    log_fail("test_isequal: 5 failed--prep_set() -> NULL\n");
+  if (set_isequal(A, B))
+    log_fail("test_isequal: 5 failed--set_isequal() -> 1\n");
 
-  int ret = set_isequal(A, B);
+  /* set, set */
+  if (set_size(A) != 3 || set_size(B) != 3)
+    log_fail("test_isequal: 6 failed--set sizes are not the same\n");
+  /* Make the sets the same */
+  *((int *)A->head->data) = *((int *)B->head->data);
+  *((int *)A->head->next->data) = *((int *)B->head->next->data);
+  *((int *)A->tail->data) = *((int *)B->tail->data);
+  if (!set_isequal(A, B))
+    log_fail("test_isequal: 6 failed--set_isequal() -> 0\n");
+
   set_destroy(&A);
   set_destroy(&B);
-  return ret;
+  return 1;
 }
 
 /******************************************************************************
