@@ -4,10 +4,11 @@
  * AUTHOR:	    Ethan D. Twardy
  *
  * DESCRIPTION:	    The source file containing the tests for the API in set.c.
+ *		    TODO: Patch the tree.
  *
  * CREATED:	    01/18/2018
  *
- * LAST EDITED:	    01/22/2018
+ * LAST EDITED:	    01/23/2018
  ***/
 
 /******************************************************************************
@@ -93,6 +94,7 @@ static int failures = 0;
 
 #ifdef CONFIG_DEBUG_SET
 int match(const void *, const void *);
+void * copy(const void *);
 void printset(void *);
 static set * prep_set();
 
@@ -147,7 +149,8 @@ int main(int argc, char * argv[])
   	 test_insert()	? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_isequal()	? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_union(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_intersection(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 /* test_intersection(set1, set2, set3) */ 0
+	 ? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_difference(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC
   	 );
 
@@ -194,6 +197,29 @@ int match(const void * one, const void * two)
 }
 
 /******************************************************************************
+ * FUNCTION:	    copy
+ *
+ * DESCRIPTION:	    This function (meant to be user-defined in practice) copies
+ *		    the user data passed in `data' and returns a pointer to it.
+ *		    If there is an error, this function returns NULL, and the
+ *		    set API will return immediately with an error code.
+ *
+ * ARGUMENTS:	    data: (const void *) -- the data to copy.
+ *
+ * RETURN:	    void * -- pointer to the copied data, or NULL.
+ *
+ * NOTES:	    none.
+ ***/
+void * copy(const void * data)
+{
+  int * new = NULL;
+  if ((new = malloc(sizeof(int))) == NULL)
+    return NULL;
+  *new = *((int *)data);
+  return new;
+}
+
+/******************************************************************************
  * FUNCTION:	    printset
  *
  * DESCRIPTION:	    Used by set_traverse, for debugging.
@@ -225,7 +251,7 @@ void printset(void * data)
 static set * prep_set()
 {
   set * group = NULL;
-  if ((group = set_create(match, free)) == NULL) {
+  if ((group = set_create(match, copy, free)) == NULL) {
     log("prep_set: set_create() -> NULL");
     return NULL;
   }
@@ -264,25 +290,31 @@ static set * prep_set()
  * RETURN:	    int -- 1 if the test passes, 0 otherwise.
  *
  * NOTES:	    Test cases:
- *			1 - NULL, nonnull
- *			2 - nonnull, NULL
- *			3 - nonnull, nonnull
+ *			1 - NULL, nonnull, nonnull
+ *			2 - nonnull, NULL, nonnull
+ *			3 - nonnull, nonnull, NULL
+ *			4 - nonnull, nonnull, nonnull
  ***/
 static int test_create()
 {
-  /* NULL, nonnull */
+  /* NULL, nonnull, nonull */
   set * group = NULL;
-  if ((group = set_create(NULL, free)) != NULL)
+  if ((group = set_create(NULL, copy, free)) != NULL)
     log_fail("test_create: 1 failed--set_create() !-> NULL\n");
 
-  /* nonnull, NULL */
-  if ((group = set_create(match, NULL)) == NULL)
+  /* nonnull, NULL, nonnull */
+  if ((group = set_create(match, NULL, free)) == NULL)
     log_fail("test_create: 2 failed--set_create() -> NULL\n");
   set_destroy(&group);
 
-  /* nonnull, nonnull */
-  if ((group = set_create(match, free)) == NULL)
+  /* nonnull, nonnull, NULL */
+  if ((group = set_create(match, copy, NULL)) == NULL)
     log_fail("test_create: 3 failed--set_create() -> NULL\n");
+  set_destroy(&group);
+
+  /* nonnull, nonnull, nonnull */
+  if ((group = set_create(match, copy, free)) == NULL)
+    log_fail("test_create: 4 failed--set_create() -> NULL\n");
   set_destroy(&group);
 
   return 1;
@@ -312,7 +344,7 @@ static int test_destroy()
   set_destroy(&group); /* *NULL */
 
   /* Set is empty */
-  if ((group = set_create(match, free)) == NULL)
+  if ((group = set_create(match, copy, free)) == NULL)
     log_fail("test_destroy: 3 failed--set_create() -> NULL\n");
   set_destroy(&group);
 
@@ -441,7 +473,7 @@ static int test_isequal()
     log_fail("test_isequal: 2 failed--set_isequal() -> 1\n");
 
   /* (0), set */
-  if ((B = set_create(match, free)) == NULL)
+  if ((B = set_create(match, copy, free)) == NULL)
     log_fail("test_isequal: 3 failed--set_create() -> NULL\n");
   if (set_isequal(B, A))
     log_fail("test_isequal: 3 failed--set_isequal() -> 1\n");
@@ -493,9 +525,9 @@ static int test_union(set * A, set * B, set * U)
   int arrU[] = {0, 1, 2, 4, 6};
   int * pTest;
 
-  if ((A = set_create(match, NULL)) == NULL)
+  if ((A = set_create(match, NULL, NULL)) == NULL)
     return 0;
-  if ((B = set_create(match, NULL)) == NULL)
+  if ((B = set_create(match, NULL, NULL)) == NULL)
     return 0;
   
   for (int i = 0; i < 3; i++)
@@ -539,9 +571,9 @@ static int test_intersection(set * A, set * B, set * I)
   int arrA[] = {0, 1, 2};
   int arrB[] = {2, 4, 6};
 
-  if ((A = set_create(match, NULL)) == NULL)
+  if ((A = set_create(match, NULL, NULL)) == NULL)
     return 0;
-  if ((B = set_create(match, NULL)) == NULL)
+  if ((B = set_create(match, NULL, NULL)) == NULL)
     return 0;
   /* Don't need to initialize I because set_intersection does that.
    */
@@ -586,9 +618,9 @@ static int test_difference(set * A, set * B, set * S)
   int arrA[] = {0, 1, 2};
   int arrB[] = {2, 4, 6};
 
-  if ((A = set_create(match, NULL)) == NULL)
+  if ((A = set_create(match, NULL, NULL)) == NULL)
     return 0;
-  if ((B = set_create(match, NULL)) == NULL)
+  if ((B = set_create(match, NULL, NULL)) == NULL)
     return 0;
   
   for (int i = 0; i < 3; i++)

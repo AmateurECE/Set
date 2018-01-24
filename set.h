@@ -9,7 +9,7 @@
  *
  * CREATED:	    05/09/2017
  *
- * LAST EDITED:	    01/22/2018
+ * LAST EDITED:	    01/23/2018
  ***/
 
 #ifndef __ET_SET_H__
@@ -31,6 +31,7 @@ typedef struct {
   int size;
 
   int (*match)(const void *, const void *);
+  void * (*copy)(const void *);
   void (*destroy)(void *);
 
   member * head;
@@ -62,7 +63,8 @@ typedef struct {
  ***/
 
 extern set * set_create(int (*match)(const void *, const void *),
-		       void (*destroy)(void *));
+			void * (*copy)(const void *),
+			void (*destroy)(void *));
 extern int set_ismember(const set * set, const void * data);
 extern int set_insert(set * set, void * data);
 extern int set_remove(set * set, const void ** data);

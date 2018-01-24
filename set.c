@@ -11,7 +11,7 @@
  *
  * CREATED:	    05/09/2017
  *
- * LAST EDITED:	    01/22/2018
+ * LAST EDITED:	    01/23/2018
  ***/
 
 /******************************************************************************
@@ -35,17 +35,26 @@
  * DESCRIPTION:	    Initializes the set pointer with the parameters given.
  *
  * ARGUMENTS:	    match: (int (*)(const void *, const void *)) -- a pointer
- *			   to a user-defined function that compares two keys
- *			   and determines if they are equal. Should return 1
- *			   for equality and 0 otherwise.
+ *			to a user-defined function that compares two keys
+ *			and determines if they are equal. Should return 1
+ *			for equality and 0 otherwise.
+ *		    copy: (void * (*copy)(const void *)) -- pointer to a user-
+ *			defined function which copies the user-data passed to
+ *			it and returns a pointer to the copy. If this function
+ *			returns NULL, the set API assumes an error has occurred
+ *			and returns immediately with a proper error code. This
+ *			argument can be NULL, but if it is, all of the
+ *			set operations which create a new set (set_union, etc)
+ *			will exit immediately with an error code.
  *		    destroy: (void (*)(void *)) -- a pointer to a user-defined
- *			     function that frees data held in the list.
+ *			function that frees data held in the list.
  *
  * RETURN:	    (set *) -- pointer to the new set, or NULL.
  *
  * NOTES:	    O(1)
  ***/
 set * set_create(int (*match)(const void *, const void *),
+		 void * (*copy)(const void *),
 		 void (*destroy)(void *))
 {
   if (match == NULL)
@@ -57,6 +66,7 @@ set * set_create(int (*match)(const void *, const void *),
   *group = (set){
     .size = 0,
     .match = match,
+    .copy = copy,
     .destroy = destroy,
     .head = NULL,
     .tail = NULL
@@ -281,10 +291,12 @@ void set_destroy(set ** group)
  ***/
 int set_union_func(set ** setu,  set * sets[])
 {
-  if (sets[0] == NULL || setu == NULL)
+  if (sets[0] == NULL || setu == NULL || sets[0]->copy == NULL)
     return -1;
   if (*setu == NULL) {
-    if ((*setu = set_create(sets[0]->match, sets[0]->destroy)) == NULL)
+    if ((*setu = set_create(sets[0]->match,
+			    sets[0]->copy,
+			    sets[0]->destroy)) == NULL)
       return -1;
   } else if (set_size(*setu) > 0) {
     return -1;
@@ -325,10 +337,12 @@ int set_union_func(set ** setu,  set * sets[])
  ***/
 int set_intersection_func(set ** seti, set * sets[])
 {
-  if (sets[0] == NULL || seti == NULL)
+  if (sets[0] == NULL || seti == NULL || sets[0]->copy == NULL)
     return -1;
   if (*seti == NULL) {
-    if ((*seti = set_create(sets[0]->match, sets[0]->destroy)) == NULL)
+    if ((*seti = set_create(sets[0]->match,
+			    sets[0]->copy,
+			    sets[0]->destroy)) == NULL)
       return -1;
   } else if (set_size(*seti) > 0) {
     return -1;
@@ -364,9 +378,12 @@ int set_intersection_func(set ** seti, set * sets[])
  ***/
 int set_difference(set ** setd, const set * set1, const set * set2)
 {
-  if (setd == NULL || set1 == NULL || set2 == NULL)
+  if (setd == NULL || set1 == NULL || set2 == NULL
+      || set1->copy == NULL || set2->copy == NULL)
     return -1;
-  if ((*setd = set_create(set1->match, set1->destroy)) == NULL)
+  if ((*setd = set_create(set1->match,
+			  set1->copy,
+			  set1->destroy)) == NULL)
     return -1;
 
   member * current;
