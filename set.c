@@ -11,7 +11,7 @@
  *
  * CREATED:	    05/09/2017
  *
- * LAST EDITED:	    01/23/2018
+ * LAST EDITED:	    01/24/2018
  ***/
 
 /******************************************************************************
@@ -276,7 +276,10 @@ void set_destroy(set ** group)
  * FUNCTION:	    set_union_func
  *
  * DESCRIPTION:	    Performs the union set operation and places the result in
- *		    setu.
+ *		    setu. This function uses the set->copy parameter, to
+ *		    prevent memory dependencies in the new set. If this param
+ *		    is set to NULL or returns NULL, this function exits
+ *		    immediately.
  *
  * ARGUMENTS:	    setu: (set **) -- will contain a pointer to the union of
  *			all sets at the end of the call.
@@ -293,19 +296,16 @@ int set_union_func(set ** setu,  set * sets[])
 {
   if (sets[0] == NULL || setu == NULL || sets[0]->copy == NULL)
     return -1;
-  if (*setu == NULL) {
-    if ((*setu = set_create(sets[0]->match,
-			    sets[0]->copy,
-			    sets[0]->destroy)) == NULL)
-      return -1;
-  } else if (set_size(*setu) > 0) {
+  if ((*setu = set_create(sets[0]->match,
+			  sets[0]->copy,
+			  sets[0]->destroy)) == NULL)
     return -1;
-  }
 
   int i = 0;
   for (set * set = sets[i]; set != NULL; set = sets[i++]) {
     for (member * current = set->head; current != NULL; set_next(current)) {
-      if (set_insert(*setu, (void *)current->data) < 0)
+      void * new = (*setu)->copy(current->data);
+      if (new == NULL || set_insert(*setu, new) < 0)
 	goto error_exception;
     }
   }
@@ -333,7 +333,13 @@ int set_union_func(set ** setu,  set * sets[])
  *
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
- * NOTES:	    O(mn), where m is the number of sets passed.
+ * NOTES:	    TODO: set_intersection_func - Always create a new set
+ *		    TODO: set_intersection_func - Copy memory in each set.
+ *			- Currently, setu is changed only to point to the same
+ *			memory locations as the sets in sets[]. Suggest
+ *			creating a `copy' function which creates a copy of the
+ *			user data passed to it. Will need to be user-defined.
+ *		    O(mn), where m is the number of sets passed.
  ***/
 int set_intersection_func(set ** seti, set * sets[])
 {
@@ -374,7 +380,13 @@ int set_intersection_func(set ** seti, set * sets[])
  *
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
- * NOTES:	    O(mn)
+ * NOTES:	    TODO: set_difference - Make this function variadic
+ *		    TODO: set_difference - Copy memory associated in each set.
+ *			- Currently, setu is changed only to point to the same
+ *			memory locations as the sets in sets[]. Suggest
+ *			creating a `copy' function which creates a copy of the
+ *			user data passed to it. Will need to be user-defined.
+ *		    O(mn)
  ***/
 int set_difference(set ** setd, const set * set1, const set * set2)
 {
@@ -444,7 +456,8 @@ int set_issubset(const set * set1, const set * set2)
  *
  * RETURN:	    int -- 1 if the sets are equal, 0 otherwise.
  *
- * NOTES:	    O(mn)
+ * NOTES:	    TODO: set_isequal - Make this variadic
+ *		    O(mn)
  ***/
 int set_isequal(const set * set1, const set * set2)
 {

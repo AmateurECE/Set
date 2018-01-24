@@ -1,3 +1,8 @@
+./set.c: set_intersection_func - Always create a new set | id:17ccc3154934e0eb35bf8c6afe80f8b2810a9672
+./set.c: set_difference - Copy memory associated in each set. | id:4a6395f5e50eecc7d44e98e5bb14482d8e040ec3
 ./test.c: Update test_difference | id:6619e5fe3288d52df8eb0b3df49f3962e2fef656
 ./test.c: Update test_intersection | id:72824277a07467a59d699619482e3665b316b30e
-./test.c: Update test_union | id:a0869ba19b45f689d65cc9df12d3dd51b18b829e
+./test.c: Patch the tree. | id:83dafcfc66afe3d6232b02255e06c2d2c09f416b
+./set.c: set_isequal - Make this variadic | id:a99f91cae121857368c622e53f966f07716fe059
+./set.c: set_difference - Make this function variadic | id:b4d01eecdeaf6ea350417b9a5b1560c4968224ac
+./set.c: set_intersection_func - Copy memory in each set. | id:bca0e7bbab997624ea464b6a27150cbba241bd0e

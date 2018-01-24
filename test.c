@@ -8,7 +8,7 @@
  *
  * CREATED:	    01/18/2018
  *
- * LAST EDITED:	    01/23/2018
+ * LAST EDITED:	    01/24/2018
  ***/
 
 /******************************************************************************
@@ -103,7 +103,7 @@ static int test_destroy();
 static int test_remove();
 static int test_insert();
 static int test_isequal();
-static int test_union(set *, set *, set *);
+static int test_union();
 static int test_intersection(set *, set *, set *);
 static int test_difference(set *, set *, set *);
 #endif /* CONFIG_DEBUG_SET */
@@ -148,7 +148,7 @@ int main(int argc, char * argv[])
   	 test_remove()	? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_insert()	? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_isequal()	? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_union(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_union()	? PASS"PASS"NC : FAIL"FAIL"NC,
   	 /* test_intersection(set1, set2, set3) */ 0
 	 ? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_difference(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC
@@ -233,7 +233,11 @@ void * copy(const void * data)
 void printset(void * data)
 {
   int * pInt = (int *)data;
-  printf("%d @ %p\n", *pInt, pInt);
+#ifdef CONFIG_TEST_LOG
+  fprintf(logfile, "\t%d @ %p\n", *pInt, pInt);
+#else
+  printf("\t%d @ %p\n", *pInt, pInt);
+#endif
 }
 
 /******************************************************************************
@@ -509,46 +513,116 @@ static int test_isequal()
  *
  * DESCRIPTION:	    Tests the set_union function.
  *
- * ARGUMENTS:	    A: (set *) -- The first set to use in the tests.
- *		    B: (set *) -- The second set to use in the tests.
- *		    C: (set *) -- The third set to use in the tests.
+ * ARGUMENTS:	    none.
  *
  * RETURN:	    (int) -- 1 if the test passes, 0 otherwise.
  *
- * NOTES:	    TODO: Update test_union
+ * NOTES:	    Test cases:
+ *			1 - NULL, set1, set2
+ *			2 - setu, NULL
+ *			3 - setu, set1
+ *			4 - setu, set1, set2
+ *			5 - setu, set1, set2, set3, set4
+ *			6 - setu, set1, set2 (deterministic)
  ***/
-static int test_union(set * A, set * B, set * U)
+static int test_union()
 {
-  /* {0, 1, 2} U {2, 4, 6} = {0, 1, 2, 4, 6} */
-  int arrA[] = {0, 1, 2};
-  int arrB[] = {2, 4, 6};
-  int arrU[] = {0, 1, 2, 4, 6};
-  int * pTest;
+  /* NULL, set1, set2 */
+  set *setu = NULL, *set1 = NULL, *set2 = NULL, *set3 = NULL, *set4 = NULL;
+  if ((set1 = prep_set()) == NULL || (set2 = prep_set()) == NULL)
+    log_fail("test_union: 1 failed--prep_set() -> NULL\n");
+  if (!set_union(NULL, set1, set2))
+    log_fail("test_union: 1 failed--set_union() -> 0\n");
 
-  if ((A = set_create(match, NULL, NULL)) == NULL)
-    return 0;
-  if ((B = set_create(match, NULL, NULL)) == NULL)
-    return 0;
-  
-  for (int i = 0; i < 3; i++)
-    set_insert(A, (void *)&(arrA[i]));
+  /* setu, NULL */
+  if (!set_union(&setu, NULL))
+    log_fail("test_union: 2 failed--set_union() -> 0\n");
 
-  for (int i = 0; i < 3; i++)
-    set_insert(B, (void *)&(arrB[i]));
+  /* setu, set1 */
+  if (set_union(&setu, set1))
+    log_fail("test_union: 3 failed--set_union() -> -1\n");
 
-  if (set_union(&U, A, B) != 0)
-    return 0;
+  /* setu, set1, set2 */
+  set_destroy(&setu);
+  if (set_union(&setu, set1, set2))
+    log_fail("test_union: 4 failed--set_union() -> -1\n");
 
-  for (int i = 0; i < set_size(U); i++) {
-    pTest = &(arrU[i]);
-    if (set_remove(U, (const void **)&pTest) != 0)
-      return 0; 
+  /* setu, set1, set2, set3, set4 */
+  set_destroy(&setu);
+  if ((set3 = prep_set()) == NULL || (set4 = prep_set()) == NULL)
+    log_fail("test_union: 5 failed--set_union() -> NULL\n");
+  if (set_union(&setu, set1, set2, set3, set4))
+    log_fail("test_union: 5 failed--set_union() -> -1\n");
+
+  /* setu, set1, set2 (deterministic) */
+  set_destroy(&setu);
+  set_destroy(&set1);
+  set_destroy(&set2);
+  set_destroy(&set3);
+  if ((set1 = set_create(match, copy, free)) == NULL)
+    log_fail("test_union: 6 failed--set_create() -> NULL\n");
+  if ((set2 = set_create(match, copy, free)) == NULL)
+    log_fail("test_union: 6 failed--set_create() -> NULL\n");
+  if ((set3 = set_create(match, copy, free)) == NULL)
+    log_fail("test_union: 6 failed--set_create() -> NULL\n");
+
+  /* Prepare the test sets:
+   *	set1 and set2 are given to set_union()
+   *	set3 is compared to setu using set_isequal()
+   */
+  int ent1[] = {0, 4, 6}, ent2[] = {1, 5}, entu[] = {0, 1, 4, 5, 6}, iter = 0;
+  while (iter < 3) {
+    int *pArr = NULL, size = 0;
+    set * pSet = NULL;
+    switch (iter) {
+    case 0:
+      pArr = ent1, size = 3, pSet = set1;
+      break;
+    case 1:
+      pArr = ent2, size = 2, pSet = set2;
+      break;
+    case 2:
+      pArr = entu, size = 5, pSet = set3;
+      break;
+    default:
+      goto increment; /* Unreachable code */
+    }
+
+    /* Populate the set */
+    int * pNum = NULL;
+    for (int i = 0; i < size; i++) {
+      if ((pNum = malloc(sizeof(int))) == NULL)
+	log_fail("test_union: 6 failed--malloc() -> NULL\n");
+      *pNum = pArr[i];
+      if (set_insert(pSet, pNum))
+	log_fail("test_union: 6 failed--set_insert() -> -1\n");
+    }
+
+  increment:
+    iter++;
   }
 
-  set_destroy(&A);
-  set_destroy(&B);
-  set_destroy(&U);
+  if (set_union(&setu, set1, set2))
+    log_fail("test_union: 6 failed--set_union() -> -1\n");
+  if (!set_isequal(setu, set3)) {
+    log("test_union: 6 failed--setu and set3 are not the same:\n");
+    log("setu:\n");
+#ifdef CONFIG_TEST_LOG
+    set_traverse(setu, printset); /* Prints to log automatically */
+#endif
+    log("set3:\n");
+#ifdef CONFIG_TEST_LOG
+    set_traverse(set3, printset); /* Prints to log automatically */
+#endif
+    log_fail("...end test 6 failure report.\n");
+  }
+  /* END TEST 6 */
 
+  set_destroy(&setu);
+  set_destroy(&set1);
+  set_destroy(&set2);
+  set_destroy(&set3);
+  set_destroy(&set4);
   return 1;
 }
 
