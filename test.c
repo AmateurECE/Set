@@ -4,11 +4,10 @@
  * AUTHOR:	    Ethan D. Twardy
  *
  * DESCRIPTION:	    The source file containing the tests for the API in set.c.
- *		    TODO: Patch the tree.
  *
  * CREATED:	    01/18/2018
  *
- * LAST EDITED:	    01/24/2018
+ * LAST EDITED:	    02/02/2018
  ***/
 
 /******************************************************************************
@@ -61,7 +60,7 @@
 #	define CONFIG_LOG_FILENAME "./log.txt"
 #   endif
 
-#   define log(...) fprintf(logfile, __VA_ARGS__);
+#   define log(...) fprintf(logfile, __VA_ARGS__)
 #   define log_fail(...) {			\
     log(__VA_ARGS__);				\
     failures++;					\
@@ -105,7 +104,7 @@ static int test_insert();
 static int test_isequal();
 static int test_union();
 static int test_intersection(set *, set *, set *);
-static int test_difference(set *, set *, set *);
+static int test_difference();
 #endif /* CONFIG_DEBUG_SET */
 
 /******************************************************************************
@@ -115,7 +114,6 @@ static int test_difference(set *, set *, set *);
 #ifdef CONFIG_DEBUG_SET
 int main(int argc, char * argv[])
 {
-  set * set1 = NULL, *set2 = NULL, *set3 = NULL;
   srand((unsigned)time(NULL));
 
 #ifdef CONFIG_TEST_LOG
@@ -143,15 +141,15 @@ int main(int argc, char * argv[])
   	 "Test intersection (set_intersection):\t%s\n"
   	 "Test difference (set_difference):\t%s\n",
 
-  	 test_create()	? PASS"PASS"NC : FAIL"FAIL"NC,
-	 test_destroy()	? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_remove()	? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_insert()	? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_isequal()	? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_union()	? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_create()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
+	 test_destroy()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_remove()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_insert()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_isequal()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_union()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
   	 /* test_intersection(set1, set2, set3) */ 0
 	 ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_difference(set1, set2, set3) ? PASS"PASS"NC : FAIL"FAIL"NC
+  	 test_difference()  ? PASS"PASS"NC : FAIL"FAIL"NC
   	 );
 
 
@@ -678,39 +676,120 @@ static int test_intersection(set * A, set * B, set * I)
  *
  * DESCRIPTION:	    Tests the set_difference function.
  *
- * ARGUMENTS:	    A: (set *) -- The first set to use in the tests.
- *		    B: (set *) -- The second set to use in the tests.
- *		    C: (set *) -- The third set to use in the tests.
+ * ARGUMENTS:	    none.
  *
  * RETURN:	    (int) -- 1 if the tests pass, 0 otherwise.
  *
- * NOTES:	    TODO: Update test_difference
+ * NOTES:	    Test cases:
+ *			1 - NULL, set, set
+ *			2 - nonnull, NULL, nonnull
+ *			3 - nonnull, nonnull, NULL
+ *			4 - nonnull, set, set (deterministic)
+ *			5 - nonnull, set, set (null result)
+ *			6 - nonnull, set, set (heuristic)
  ***/
-static int test_difference(set * A, set * B, set * S)
+static int test_difference()
 {
-  /* {0, 1, 2} - {2, 4, 6} = {0, 1} */
-  int arrA[] = {0, 1, 2};
-  int arrB[] = {2, 4, 6};
+  /* NULL, set, set */
+  set *set1 = NULL, *set2 = NULL, *set3 = NULL, *setd = NULL;;
+  if ((set1 = prep_set()) == NULL || (set2 = prep_set()) == NULL)
+    log_fail("test_difference: 1 failed--prep_set() -> NULL\n");
+  if (!set_difference(NULL, set1, set2))
+    log_fail("test_difference: 1 failed--set_difference() -> 0\n");
 
-  if ((A = set_create(match, NULL, NULL)) == NULL)
-    return 0;
-  if ((B = set_create(match, NULL, NULL)) == NULL)
-    return 0;
-  
-  for (int i = 0; i < 3; i++)
-    set_insert(A, (void *)&(arrA[i]));
+  /* nonnull, NULL, set */
+  if (!set_difference(&setd, NULL, set1))
+    log_fail("test_difference: 2 failed--set_difference() -> 0\n");
 
-  for (int i = 0; i < 3; i++)
-    set_insert(B, (void *)&(arrB[i]));
+  /* nonnull, set, NULL */
+  if (!set_difference(&setd, set1, NULL))
+    log_fail("test_difference: 3 failed--set_difference() -> 0\n");
 
-  if (set_difference(&S, A, B) != 0)
-    return 0;
+  /* nonnull, set, set (deterministic) */
+  set_destroy(&set1);
+  set_destroy(&set2);
+  if ((set1 = set_create(match, copy, free)) == NULL
+      || (set2 = set_create(match, copy, free)) == NULL
+      || (set3 = set_create(match, copy, free)) == NULL)
+    log_fail("test_difference: 4 failed--set_create() -> NULL\n");
 
-  /* set_traverse(S, printset); */
+  int arr1[] = {1, 2, 3, 4}, arr2[] = {2, 4, 6, 8},
+    arrd[] = {1, 3}, *pArr = NULL, size = 0, i = 0, *pNum = NULL;
+  set * pSet = NULL;
+  /* Load up sets */
+  while (i < 3) {
+    switch (i) {
+    case 1:
+      pArr = arr1, size = 4, pSet = set1;
+      break;
+    case 2:
+      pArr = arr2, size = 4, pSet = set2;
+      break;
+    case 3:
+      pArr = arrd, size = 2, pSet = set3;
+      break;
+    default:
+      goto break_loop; /* Unreachable code */
+    }
 
-  set_destroy(&A);
-  set_destroy(&B);
-  set_destroy(&S);
+    for (int j = 0; j < size; j++) {
+      if ((pNum = malloc(sizeof(int))) == NULL)
+	log_fail("test_difference: 4 failed--malloc() -> NULL\n");
+      *pNum = pArr[j];
+      if (set_insert(pSet, pNum))
+	log_fail("test_difference: 4 failed--set_insert() !-> 0\n");
+    }
+
+    i++;
+    continue;
+  break_loop:
+    break;
+  }
+
+  if (set_difference(&setd, set1, set2))
+    log_fail("test_difference: 4 failed--set_insert() !-> 0\n");
+  if (!set_isequal(setd, set3))
+    log_fail("test_difference: 4 failed--setd and set3 are not the same\n");
+  set_destroy(&set1);
+  set_destroy(&set2);
+  set_destroy(&set3);
+  set_destroy(&setd);
+  /* end test 4 */
+
+  /* nonnull, set, set (null result) */
+  if ((set1 = set_create(match, copy, free)) == NULL
+      || (set2 = set_create(match, copy, free)) == NULL)
+    log_fail("test_difference: 5 failed--set_create() -> NULL\n");
+
+  for (pSet = set1; pSet != NULL; pSet = (pSet == set1 ? set2 : NULL)) {
+    for (int j = 0; j < 4; j++) {
+      if ((pNum = malloc(sizeof(int))) == NULL)
+	log_fail("test_difference: 5 failed--malloc() -> NULL\n");
+      *pNum = arr1[j];
+      if (set_insert(pSet, pNum))
+	log_fail("test_difference: 5 failed--set_insert() !-> 0\n");
+    }
+  }
+
+  if (set_difference(&setd, set1, set2))
+    log_fail("test_difference: 5 failed--set_difference() !-> 0\n");
+  if (set_size(setd) != 0)
+    log_fail("test_difference: 5 failed--setd is not empty.\n");
+  set_destroy(&set1);
+  set_destroy(&set2);
+  set_destroy(&setd);
+
+  /* nonnull, set, set (heuristic) */
+  if ((set1 = prep_set()) == NULL
+      || (set2 = prep_set()) == NULL)
+    log_fail("test_difference: 6 failed--prep_set() -> NULL\n");
+  if (set_difference(&setd, set1, set2))
+    log_fail("test_difference: 6 failed--set_difference() !-> 0\n");
+  if (setd == NULL)
+    log_fail("test_difference: 6 failed--setd is NULL\n");
+  set_destroy(&set1);
+  set_destroy(&set2);
+  set_destroy(&setd);
 
   return 1;
 }

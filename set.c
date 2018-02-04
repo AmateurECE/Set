@@ -11,7 +11,7 @@
  *
  * CREATED:	    05/09/2017
  *
- * LAST EDITED:	    01/24/2018
+ * LAST EDITED:	    02/04/2018
  ***/
 
 /******************************************************************************
@@ -289,7 +289,8 @@ void set_destroy(set ** group)
  *
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
- * NOTES:	    O(mn), where m is the number of sets unioned. Should always
+ * NOTES:	    TODO: set_union_func - Check each sets fn params
+ *		    O(mn), where m is the number of sets unioned. Should always
  *		    be called by wrapper macro.
  ***/
 int set_union_func(set ** setu,  set * sets[])
@@ -334,6 +335,7 @@ int set_union_func(set ** setu,  set * sets[])
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
  * NOTES:	    TODO: set_intersection_func - Always create a new set
+ *		    TODO: set_intersection_func - Check each sets fn params.
  *		    TODO: set_intersection_func - Copy memory in each set.
  *			- Currently, setu is changed only to point to the same
  *			memory locations as the sets in sets[]. Suggest
@@ -374,19 +376,13 @@ int set_intersection_func(set ** seti, set * sets[])
  *		    result in setd.
  *
  * ARGUMENTS:	    setd: (set **) -- will contain a pointer to the difference
- *			  of all sets at the end of the call.
+ *			of all sets at the end of the call.
  *		    set1: (const set *) -- the minuend of the subtraction.
  *		    set2: (const set *) -- the difference of the subtraction.
  *
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
- * NOTES:	    TODO: set_difference - Make this function variadic
- *		    TODO: set_difference - Copy memory associated in each set.
- *			- Currently, setu is changed only to point to the same
- *			memory locations as the sets in sets[]. Suggest
- *			creating a `copy' function which creates a copy of the
- *			user data passed to it. Will need to be user-defined.
- *		    O(mn)
+ * NOTES:	    O(mn)
  ***/
 int set_difference(set ** setd, const set * set1, const set * set2)
 {
@@ -402,7 +398,7 @@ int set_difference(set ** setd, const set * set1, const set * set2)
   for (current = set1->head; current != NULL; set_next(current)) {
     
     if (!set_ismember(set2, current->data))
-      if (set_insert(*setd, current->data) != 0)
+      if (set_insert(*setd, (*setd)->copy(current->data)) != 0)
 	goto error_exception;
 
   }
