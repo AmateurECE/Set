@@ -1,3 +1,2 @@
 set.h: implement a set_copy function? | id:59ab4f8c4a12aec74f5e1f7c8a95b743dddc6c92
-set.c: set_isequal - Make this variadic | id:6acf5ff0d35eb7bcc51ac0804ac6ab228a052814
 test.c: Investigate mem leaks; 'possibly lost' are non fault | id:9bbe8e323aece6ad0a4c4c8f22a55557e82c6a7f

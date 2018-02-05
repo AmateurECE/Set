@@ -437,29 +437,33 @@ int set_issubset(const set * set1, const set * set2)
 }
 
 /******************************************************************************
- * FUNCTION:	    set_isequal
+ * FUNCTION:	    set_isequal_func
  *
  * DESCRIPTION:	    Determines if set1 is equal to set2.
  *
- * ARGUMENTS:	    set1: (const set *) -- the set in question.
- *		    set2: (const set *) -- the reference set.
+ * ARGUMENTS:	    sets: (set * []) - the sets to check equality of.
  *
  * RETURN:	    int -- 1 if the sets are equal, 0 otherwise.
  *
- * NOTES:	    TODO: set_isequal - Make this variadic
- *		    O(mn)
+ * NOTES:	    O(mn)
  ***/
-int set_isequal(const set * set1, const set * set2)
+int set_isequal_func(set * sets[])
 {
-  if (set1 == NULL || set2 == NULL || set_size(set1) != set_size(set2))
+  if (sets[0] == NULL)
+    return 0;
+  int i = 0;
+  for (set * s = sets[i]; s != NULL; s = sets[++i])
+    if (set_size(sets[i]) != set_size(sets[0]))
+      return 0;
+  if (i == 1)
     return 0;
 
   member * current;
-  for (current = set1->head; current != NULL; set_next(current)) {
-    
-    if (!set_ismember(set2, current->data))
-      return 0;
-
+  for (current = sets[0]->head; current != NULL; set_next(current)) {
+    i = 0;
+    for (set * s = sets[i]; s != NULL; s = sets[++i])
+      if (!set_ismember(s, current->data))
+	return 0;
   }
   
   return 1;

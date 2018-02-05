@@ -58,6 +58,9 @@ typedef struct {
 #define set_intersection(Seti, ...)				\
   (set_intersection_func(Seti, (set * []){__VA_ARGS__, NULL}))
 
+#define set_isequal(...)				\
+  (set_isequal_func((set * []){__VA_ARGS__, NULL}))
+
 /******************************************************************************
  * API FUNCTION PROTOTYPES
  ***/
@@ -76,13 +79,13 @@ extern void set_destroy(set ** set);
 /* These functions: */
 extern int set_union_func(set **, set * []);
 extern int set_intersection_func(set **, set * []);
+extern int set_isequal_func(set * []);
 /* Should NEVER be called directly. Use the wrapper macros defined above. */
 
 extern int set_difference(set ** dest,
 			  const set * source1,
 			  const set * source2);
 extern int set_issubset(const set * subset, const set * masterset);
-extern int set_isequal(const set * set1, const set * set2);
 
 #endif /* __ET_SET_H__ */
 
