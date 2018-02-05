@@ -304,11 +304,18 @@ int set_union_func(set ** setu,  set * sets[])
   int i = 0;
   for (set * set = sets[i]; set != NULL; set = sets[i++]) {
     if (set->copy == NULL)
-      return -1;
+      goto error_exception;
+    int ret = 0;
     for (member * current = set->head; current != NULL; set_next(current)) {
-      void * new = (*setu)->copy(current->data);
-      if (new == NULL || set_insert(*setu, new) < 0)
+      void * new = NULL;
+      if ((new = (*setu)->copy(current->data)) == NULL)
 	goto error_exception;
+      if ((ret = set_insert(*setu, new))) {
+	if ((*setu)->destroy != NULL)
+	  (*setu)->destroy(new);
+	if (ret < 0)
+	  goto error_exception;
+      }
     }
   }
 

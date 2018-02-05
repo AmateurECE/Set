@@ -116,9 +116,6 @@ int main(int argc, char * argv[])
 {
   srand((unsigned)time(NULL));
 
-  /* TODO: Investigate mem leaks; 'possibly lost' are non fault
-   */
-
 #ifdef CONFIG_TEST_LOG
   /* Initialize log */
   printf("Initializing log in '"CONFIG_LOG_FILENAME"'...\n");
@@ -541,24 +538,25 @@ static int test_union()
   /* setu, set1 */
   if (set_union(&setu, set1))
     log_fail("test_union: 3 failed--set_union() -> -1\n");
+  set_destroy(&setu);
 
   /* setu, set1, set2 */
-  set_destroy(&setu);
   if (set_union(&setu, set1, set2))
     log_fail("test_union: 4 failed--set_union() -> -1\n");
+  set_destroy(&setu);
 
   /* setu, set1, set2, set3, set4 */
-  set_destroy(&setu);
   if ((set3 = prep_set()) == NULL || (set4 = prep_set()) == NULL)
     log_fail("test_union: 5 failed--set_union() -> NULL\n");
   if (set_union(&setu, set1, set2, set3, set4))
     log_fail("test_union: 5 failed--set_union() -> -1\n");
-
-  /* setu, set1, set2 (deterministic) */
   set_destroy(&setu);
   set_destroy(&set1);
   set_destroy(&set2);
   set_destroy(&set3);
+  set_destroy(&set4);
+
+  /* setu, set1, set2 (deterministic) */
   if ((set1 = set_create(match, copy, free)) == NULL)
     log_fail("test_union: 6 failed--set_create() -> NULL\n");
   if ((set2 = set_create(match, copy, free)) == NULL)
@@ -616,13 +614,13 @@ static int test_union()
 #endif
     log_fail("...end test 6 failure report.\n");
   }
-  /* END TEST 6 */
-
   set_destroy(&setu);
   set_destroy(&set1);
   set_destroy(&set2);
   set_destroy(&set3);
   set_destroy(&set4);
+  /* END TEST 6 */
+
   return 1;
 }
 
