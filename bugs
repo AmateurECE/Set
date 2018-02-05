@@ -1,6 +1,3 @@
-set.c: set_intersection_func - Copy memory in each set. | id:35a42096ffffcd0c83dd143d8dc0bb59bff8da78
+set.h: implement a set_copy function? | id:59ab4f8c4a12aec74f5e1f7c8a95b743dddc6c92
 set.c: set_isequal - Make this variadic | id:6acf5ff0d35eb7bcc51ac0804ac6ab228a052814
-set.c: set_union_func - Check each sets fn params | id:6feea07ccc3805c5c8848c79a40372a9ff8769e1
-test.c: Update test_intersection | id:82f86a32277462825ae73145c0cf34dd163dfc22
-set.c: set_intersection_func - Check each sets fn params. | id:be10042bfe8e98b57b372fafe85520d759d84af4
-set.c: set_intersection_func - Always create a new set | id:ca5b2f40abc2e017be4f05a4218358690936cb9e
+test.c: Investigate mem leaks; 'possibly lost' are non fault | id:9bbe8e323aece6ad0a4c4c8f22a55557e82c6a7f

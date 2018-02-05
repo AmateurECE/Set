@@ -289,13 +289,12 @@ void set_destroy(set ** group)
  *
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
- * NOTES:	    TODO: set_union_func - Check each sets fn params
- *		    O(mn), where m is the number of sets unioned. Should always
+ * NOTES:	    O(mn), where m is the number of sets unioned. Should always
  *		    be called by wrapper macro.
  ***/
 int set_union_func(set ** setu,  set * sets[])
 {
-  if (sets[0] == NULL || setu == NULL || sets[0]->copy == NULL)
+  if (sets[0] == NULL || setu == NULL)
     return -1;
   if ((*setu = set_create(sets[0]->match,
 			  sets[0]->copy,
@@ -304,6 +303,8 @@ int set_union_func(set ** setu,  set * sets[])
 
   int i = 0;
   for (set * set = sets[i]; set != NULL; set = sets[i++]) {
+    if (set->copy == NULL)
+      return -1;
     for (member * current = set->head; current != NULL; set_next(current)) {
       void * new = (*setu)->copy(current->data);
       if (new == NULL || set_insert(*setu, new) < 0)
@@ -334,27 +335,20 @@ int set_union_func(set ** setu,  set * sets[])
  *
  * RETURN:	    int -- 0 if computation was successful, -1 otherwise.
  *
- * NOTES:	    TODO: set_intersection_func - Always create a new set
- *		    TODO: set_intersection_func - Check each sets fn params.
- *		    TODO: set_intersection_func - Copy memory in each set.
- *			- Currently, setu is changed only to point to the same
- *			memory locations as the sets in sets[]. Suggest
- *			creating a `copy' function which creates a copy of the
- *			user data passed to it. Will need to be user-defined.
- *		    O(mn), where m is the number of sets passed.
+ * NOTES:	    O(mn), where m is the number of sets passed.
  ***/
 int set_intersection_func(set ** seti, set * sets[])
 {
   if (sets[0] == NULL || seti == NULL || sets[0]->copy == NULL)
     return -1;
-  if (*seti == NULL) {
-    if ((*seti = set_create(sets[0]->match,
-			    sets[0]->copy,
-			    sets[0]->destroy)) == NULL)
+  int i = 0;
+  for (set * s = sets[i]; s != NULL; s = sets[++i])
+    if (s->copy == NULL)
       return -1;
-  } else if (set_size(*seti) > 0) {
+  if ((*seti = set_create(sets[0]->match,
+			  sets[0]->copy,
+			  sets[0]->destroy)) == NULL)
     return -1;
-  }
 
   for (member * current = (*sets)->head; current != NULL; set_next(current)) {
     int nonmember = 0, j = 1;
@@ -363,7 +357,7 @@ int set_intersection_func(set ** seti, set * sets[])
 
     if (nonmember)
       continue;
-    set_insert(*seti, current->data);
+    set_insert(*seti, (*seti)->copy(current->data));
   }
 
   return 0;

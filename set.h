@@ -9,7 +9,7 @@
  *
  * CREATED:	    05/09/2017
  *
- * LAST EDITED:	    01/23/2018
+ * LAST EDITED:	    02/04/2018
  ***/
 
 #ifndef __ET_SET_H__
@@ -61,6 +61,8 @@ typedef struct {
 /******************************************************************************
  * API FUNCTION PROTOTYPES
  ***/
+
+/* TODO: implement a set_copy function? */
 
 extern set * set_create(int (*match)(const void *, const void *),
 			void * (*copy)(const void *),

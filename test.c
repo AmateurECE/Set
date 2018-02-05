@@ -7,7 +7,7 @@
  *
  * CREATED:	    01/18/2018
  *
- * LAST EDITED:	    02/02/2018
+ * LAST EDITED:	    02/04/2018
  ***/
 
 /******************************************************************************
@@ -103,7 +103,7 @@ static int test_remove();
 static int test_insert();
 static int test_isequal();
 static int test_union();
-static int test_intersection(set *, set *, set *);
+static int test_intersection();
 static int test_difference();
 #endif /* CONFIG_DEBUG_SET */
 
@@ -115,6 +115,9 @@ static int test_difference();
 int main(int argc, char * argv[])
 {
   srand((unsigned)time(NULL));
+
+  /* TODO: Investigate mem leaks; 'possibly lost' are non fault
+   */
 
 #ifdef CONFIG_TEST_LOG
   /* Initialize log */
@@ -141,15 +144,14 @@ int main(int argc, char * argv[])
   	 "Test intersection (set_intersection):\t%s\n"
   	 "Test difference (set_difference):\t%s\n",
 
-  	 test_create()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
-	 test_destroy()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_remove()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_insert()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_isequal()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_union()	    ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 /* test_intersection(set1, set2, set3) */ 0
-	 ? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_difference()  ? PASS"PASS"NC : FAIL"FAIL"NC
+  	 test_create()		? PASS"PASS"NC : FAIL"FAIL"NC,
+	 test_destroy()		? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_remove()		? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_insert()		? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_isequal()		? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_union()		? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_intersection()	? PASS"PASS"NC : FAIL"FAIL"NC,
+  	 test_difference()	? PASS"PASS"NC : FAIL"FAIL"NC
   	 );
 
 
@@ -629,44 +631,175 @@ static int test_union()
  *
  * DESCRIPTION:	    Tests the set_intersection function.
  *
- * ARGUMENTS:	    A: (set *) -- the first set to use in the tests.
- *		    B: (set *) -- the second set to use in the tests.
- *		    C: (set *) -- the third set to use in the tests.
+ * ARGUMENTS:	    none.
  *
  * RETURN:	    (int) -- 1 if the test passes, 0 otherwise.
  *
- * NOTES:	    TODO: Update test_intersection
+ * NOTES:	    Test cases:
+ *			1 - NULL, set1, set2
+ *			2 - seti, NULL
+ *			3 - seti, set1
+ *			4 - seti, set1, set2 (heuristic)
+ *			5 - seti, set1, set2 (null result)
+ *			6 - seti, set1, set2 (deterministic)
+ *			7 - seti, set1, set2, set3, set4
  ***/
-static int test_intersection(set * A, set * B, set * I)
+static int test_intersection()
 {
-  /* {0, 1, 2} ^ {2, 4, 6} = {2} */
-  int arrA[] = {0, 1, 2};
-  int arrB[] = {2, 4, 6};
+  /* NULL, set1, set2 */
+  set *seti = NULL, *set1 = NULL, *set2 = NULL, *set3 = NULL, *set4 = NULL;
+  if ((set1 = prep_set()) == NULL || (set2 = prep_set()) == NULL)
+    log_fail("test_intersection: 1 failed--prep_set() -> NULL\n");
+  if (!set_intersection(NULL, set1, set2))
+    log_fail("test_intersection: 1 failed--set_intersection() -> 0\n");
 
-  if ((A = set_create(match, NULL, NULL)) == NULL)
-    return 0;
-  if ((B = set_create(match, NULL, NULL)) == NULL)
-    return 0;
-  /* Don't need to initialize I because set_intersection does that.
-   */
+  /* seti, NULL */
+  if (!set_intersection(&seti, NULL))
+    log_fail("test_intersection: 2 failed--set_intersection() -> 0\n");
 
-  for (int i = 0; i < 3; i++)
-    set_insert(A, (void *)&(arrA[i]));
+  /* seti, set1 */
+  if (set_intersection(&seti, set1))
+    log_fail("test_intersection: 3 failed--set_intersection() !-> 0\n");
+  if (!set_isequal(seti, set1))
+    log_fail("test_intersection: 3 failed--seti and set1 are not equal.\n");
+  set_destroy(&set1);
+  set_destroy(&seti);
 
-  for (int i = 0; i < 3; i++)
-    set_insert(B, (void *)&(arrB[i]));
+  /* seti, set1, set2 (heuristic) */
+  if ((set1 = prep_set()) == NULL)
+    log_fail("test_intersection: 4 failed--prep_set() -> NULL\n");
+  if (set_intersection(&seti, set1, set2))
+    log_fail("test_intersection: 4 failed--set_intersection() !-> 0\n");
+  set_destroy(&seti);
+  set_destroy(&set1);
+  set_destroy(&set2);
 
-  if (set_intersection(&I, A, B) != 0)
-    error_exit("Failure in set_intersection.");
+  /* seti, set1, set2 (null result) */
+  if ((set1 = set_create(match, copy, free)) == NULL)
+    log_fail("test_intersection: 5 failed--set_create() -> NULL\n");
+  if ((set2 = set_create(match, copy, free)) == NULL)
+    log_fail("test_intersection: 5 failed--set_create() -> NULL\n");
 
-  /* set_traverse(I, printset); */
+  /* Prepare the test sets */
+  int ent1[] = {1, 2, 3}, ent2[] = {4, 5, 6}, iter = 0;
+  while (iter < 2) {
+    int *pArr = NULL, size = 0;
+    set * pSet = NULL;
+    switch (iter) {
+    case 0:
+      pArr = ent1, size = 3, pSet = set1;
+      break;
+    case 1:
+      pArr = ent2, size = 3, pSet = set2;
+      break;
+    default:
+      goto increment_5; /* Unreachable code */
+    }
 
-  if (set_size(I) != 1 || *((int *)I->head->data) != 2)
-    error_exit("Failure in set_intersection.");
+    /* Populate the set */
+    int * pNum = NULL;
+    for (int i = 0; i < size; i++) {
+      if ((pNum = malloc(sizeof(int))) == NULL)
+	log_fail("test_intersection: 5 failed--malloc() -> NULL\n");
+      *pNum = pArr[i];
+      if (set_insert(pSet, pNum))
+	log_fail("test_intersection: 5 failed--set_insert() -> -1\n");
+    }
 
-  set_destroy(&A);
-  set_destroy(&B);
-  set_destroy(&I);
+  increment_5:
+    iter++;
+  }
+
+  if (set_intersection(&seti, set1, set2))
+    log_fail("test_intersection: 5 failed--set_intersection() -> -1\n");
+  if (set_size(seti) != 0) {
+    log("test_intersection: 5 failed--seti is not the null set.\n");
+    log("seti:\n");
+#ifdef CONFIG_TEST_LOG
+    set_traverse(seti, printset); /* Prints to log automatically */
+#endif
+    log_fail("...end test 5 failure report.\n");
+  }
+  set_destroy(&seti);
+  set_destroy(&set1);
+  set_destroy(&set2);
+  /* END TEST 5 */
+
+  /* seti, set1, set2 (deterministic) */
+  if ((set1 = set_create(match, copy, free)) == NULL)
+    log_fail("test_intersection: 6 failed--set_create() -> NULL\n");
+  if ((set2 = set_create(match, copy, free)) == NULL)
+    log_fail("test_intersection: 6 failed--set_create() -> NULL\n");
+  if ((set3 = set_create(match, copy, free)) == NULL)
+    log_fail("test_intersection: 6 failed--set_create() -> NULL\n");
+
+  /* Prepare the test sets */
+  int ent3[] = {1, 2, 3}, ent4[] = {1, 3, 5}, enti[] = {1, 3};
+  iter = 0;
+  while (iter < 3) {
+    int *pArr = NULL, size = 0;
+    set * pSet = NULL;
+    switch (iter) {
+    case 0:
+      pArr = ent3, size = 3, pSet = set1;
+      break;
+    case 1:
+      pArr = ent4, size = 3, pSet = set2;
+      break;
+    case 2:
+      pArr = enti, size = 2, pSet = set3;
+      break;
+    default:
+      goto increment_6; /* Unreachable code */
+    }
+
+    /* Populate the set */
+    int * pNum = NULL;
+    for (int i = 0; i < size; i++) {
+      if ((pNum = malloc(sizeof(int))) == NULL)
+	log_fail("test_intersection: 6 failed--malloc() -> NULL\n");
+      *pNum = pArr[i];
+      if (set_insert(pSet, pNum))
+	log_fail("test_intersection: 6 failed--set_insert() -> -1\n");
+    }
+
+  increment_6:
+    iter++;
+  }
+
+  if (set_intersection(&seti, set1, set2))
+    log_fail("test_intersection: 6 failed--set_intersection() -> -1\n");
+  if (!set_isequal(seti, set3)) {
+    log("test_intersection: 6 failed--seti is not equal to set3.\n");
+    log("seti:\n");
+#ifdef CONFIG_TEST_LOG
+    set_traverse(seti, printset); /* Prints to log automatically */
+#endif
+    log("set3:\n");
+#ifdef CONFIG_TEST_LOG
+    set_traverse(set3, printset); /* Prints to log automatically */
+#endif
+    log_fail("...end test 6 failure report.\n");
+  }
+  set_destroy(&seti);
+  set_destroy(&set1);
+  set_destroy(&set2);
+  set_destroy(&set3);
+  /* END TEST 6 */
+
+  /* seti, set1, set2, set3, set4 */
+  if ((set1 = prep_set()) == NULL
+      || (set2 = prep_set()) == NULL
+      || (set3 = prep_set()) == NULL
+      || (set4 = prep_set()) == NULL)
+    log_fail("test_intersection: 7 failed--prep_set() -> NULL\n");
+  if (set_intersection(&seti, set1, set2, set3, set4))
+    log_fail("test_intersection: 7 failed--set_intersection() !-> 0\n");
+  set_destroy(&seti);
+  set_destroy(&set1);
+  set_destroy(&set2);
+  set_destroy(&set3);
+  set_destroy(&set4);
 
   return 1;
 }
@@ -719,13 +852,13 @@ static int test_difference()
   /* Load up sets */
   while (i < 3) {
     switch (i) {
-    case 1:
+    case 0:
       pArr = arr1, size = 4, pSet = set1;
       break;
-    case 2:
+    case 1:
       pArr = arr2, size = 4, pSet = set2;
       break;
-    case 3:
+    case 2:
       pArr = arrd, size = 2, pSet = set3;
       break;
     default:
