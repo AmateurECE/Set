@@ -7,7 +7,7 @@
  *
  * CREATED:	    01/18/2018
  *
- * LAST EDITED:	    02/04/2018
+ * LAST EDITED:	    02/12/2018
  ***/
 
 /******************************************************************************
@@ -105,6 +105,7 @@ static int test_isequal();
 static int test_union();
 static int test_intersection();
 static int test_difference();
+static int test_copy();
 #endif /* CONFIG_DEBUG_SET */
 
 /******************************************************************************
@@ -139,7 +140,8 @@ int main(int argc, char * argv[])
   	 "Test isequal (set_isequal):\t\t%s\n"
   	 "Test union (set_union):\t\t\t%s\n"
   	 "Test intersection (set_intersection):\t%s\n"
-  	 "Test difference (set_difference):\t%s\n",
+  	 "Test difference (set_difference):\t%s\n"
+	 "Test copy (set_copy):\t\t\t%s\n",
 
   	 test_create()		? PASS"PASS"NC : FAIL"FAIL"NC,
 	 test_destroy()		? PASS"PASS"NC : FAIL"FAIL"NC,
@@ -148,7 +150,8 @@ int main(int argc, char * argv[])
   	 test_isequal()		? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_union()		? PASS"PASS"NC : FAIL"FAIL"NC,
   	 test_intersection()	? PASS"PASS"NC : FAIL"FAIL"NC,
-  	 test_difference()	? PASS"PASS"NC : FAIL"FAIL"NC
+  	 test_difference()	? PASS"PASS"NC : FAIL"FAIL"NC,
+	 test_copy()		? PASS"PASS"NC : FAIL"FAIL"NC
   	 );
 
 
@@ -921,6 +924,50 @@ static int test_difference()
   set_destroy(&set1);
   set_destroy(&set2);
   set_destroy(&setd);
+
+  return 1;
+}
+
+/******************************************************************************
+ * FUNCTION:	    test_copy
+ *
+ * DESCRIPTION:	    This function tests the set_copy function.
+ *
+ * ARGUMENTS:	    none.
+ *
+ * RETURN:	    int -- 1 if the tests pass, 0 otherwise.
+ *
+ * NOTES:	    Test cases:
+ *			- NULL
+ *			- nullset
+ *			- set
+ ***/
+static int test_copy()
+{
+  /* NULL */
+  set *s = NULL, *p = NULL;
+  if (set_copy(s) != NULL)
+    log_fail("test_copy: 1 failed--set_copy() !-> NULL\n");
+
+  /* nullset */
+  if ((s = set_create(match, copy, free)) == NULL)
+    log_fail("test_copy: 2 failed--set_create() -> NULL\n");
+  if ((p = set_copy(s)) == NULL)
+    log_fail("test_copy: 2 failed--set_copy() -> NULL\n");
+  if (set_size(p) != 0)
+    log_fail("test_copy: 2 failed--set size is nonzero\n");
+  set_destroy(&s);
+  set_destroy(&p);
+
+  /* set */
+  if ((s = prep_set()) == NULL)
+    log_fail("test_copy: 3 failed--prep_set() -> NULL\n");
+  if ((p = set_copy(s)) == NULL)
+    log_fail("test_copy: 3 failed--set_copy() -> NULL\n");
+  if (set_size(p) != set_size(s))
+    log_fail("test_copy: 3 failed--set sizes are not equal\n");
+  set_destroy(&p);
+  set_destroy(&s);
 
   return 1;
 }

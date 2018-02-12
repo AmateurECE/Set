@@ -11,7 +11,7 @@
  *
  * CREATED:	    05/09/2017
  *
- * LAST EDITED:	    02/04/2018
+ * LAST EDITED:	    02/12/2018
  ***/
 
 /******************************************************************************
@@ -474,6 +474,40 @@ int set_isequal_func(set * sets[])
   }
   
   return 1;
+}
+
+/******************************************************************************
+ * FUNCTION:	    set_copy
+ *
+ * DESCRIPTION:	    Produces a deep copy of the set `s'.
+ *
+ * ARGUMENTS:	    s: (set *) -- the set to create a copy of.
+ *
+ * RETURN:	    set * -- a deep copy of the set `s', or NULL if an error
+ *		    has occurred.
+ *
+ * NOTES:	    O(n)
+ ***/
+set * set_copy(const set * s)
+{
+  if (s == NULL)
+    return NULL;
+  if (set_size(s) == 0)
+    return set_create(s->match, s->copy, s->destroy);
+
+  set * _new = NULL;
+  if ((_new = set_create(s->match, s->copy, s->destroy)) == NULL)
+    return NULL;
+
+  for (member * current = s->head; current != NULL;
+       current = current->next) {
+    if (set_insert(_new, _new->copy(current->data)) < 0) {
+      set_destroy(&_new);
+      return NULL;
+    }
+  }
+
+  return _new;
 }
 
 /*****************************************************************************/

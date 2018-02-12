@@ -65,8 +65,6 @@ typedef struct {
  * API FUNCTION PROTOTYPES
  ***/
 
-/* TODO: implement a set_copy function? */
-
 extern set * set_create(int (*match)(const void *, const void *),
 			void * (*copy)(const void *),
 			void (*destroy)(void *));
@@ -75,17 +73,17 @@ extern int set_insert(set * set, void * data);
 extern int set_remove(set * set, const void ** data);
 extern int set_traverse(set * set, void (*func)(void *));
 extern void set_destroy(set ** set);
+extern int set_difference(set ** dest,
+			  const set * source1,
+			  const set * source2);
+extern int set_issubset(const set * subset, const set * masterset);
+extern set * set_copy(const set * set);
 
 /* These functions: */
 extern int set_union_func(set **, set * []);
 extern int set_intersection_func(set **, set * []);
 extern int set_isequal_func(set * []);
 /* Should NEVER be called directly. Use the wrapper macros defined above. */
-
-extern int set_difference(set ** dest,
-			  const set * source1,
-			  const set * source2);
-extern int set_issubset(const set * subset, const set * masterset);
 
 #endif /* __ET_SET_H__ */
 
